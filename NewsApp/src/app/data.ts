@@ -4,6 +4,7 @@ import { NewsArticle, User } from './interfaces';
 export const USERS: User[] = [
   { username: 'budi123', name: 'Budi Santoso', password: 'budiPass123' },
   { username: 'ani456', name: 'Ani Rahmawati', password: 'aniPass456' },
+  { username: 'vivian', name: 'Vivian', password: 'vivian' },
 ];
 
 export const NEWS_CATEGORIES: string[] = ['Sports', 'Technology', 'Economy', 'Health'];
@@ -20,12 +21,13 @@ export const NEWS_ARTICLES: NewsArticle[] = [
     isFavorite: false,
     content:
       'As a tech department, we’re usually pretty good at spotting tech that’s out of the ordinary. During time trials we’re used to seeing new aero innovation, and while there are certainly aero tricks used in road stages, they are harder to spot.',
-    mainImage: 'https://i.ibb.co/L8zPScf/cyclists-race.jpg',
+    mainImage: 'assets/images/cyclist-group.png',
     images: [
-      'https://i.ibb.co/L8zPScf/cyclists-race.jpg',
-      'https://i.ibb.co/VvZL3A1/cyclist-helmet.jpg',
-      'https://i.ibb.co/Y0Hw2Sj/cyclist-group.jpg',
-      'https://i.ibb.co/kH6v9Yb/cyclist-motion.jpg'
+      'assets/images/cyclist-group.png',
+      'assets/images/cyclist-helmet.png',
+      'assets/images/cyclist-race.png',
+      'assets/images/cyclist-motion.png'
+
     ],
     comments: [
       { user: USERS[0], text: 'Berita yang sangat menarik!' },
@@ -43,12 +45,12 @@ export const NEWS_ARTICLES: NewsArticle[] = [
     isFavorite: true,
     content:
       'Volleyball requires a combination of strength, agility, and teamwork. This article explores the essential training regimens for aspiring volleyball players to excel on the court.',
-    mainImage: 'https://i.ibb.co/Yc8T2Kx/volleyball-training.jpg',
+    mainImage: 'assets/images/volleyball-training.png',
     images: [
-      'https://i.ibb.co/Yc8T2Kx/volleyball-training.jpg',
-      'https://i.ibb.co/MfZF3jJ/volleyball-spike.jpg',
-      'https://i.ibb.co/z5tF0mH/volleyball-team.jpg',
-      'https://i.ibb.co/gDHv4hR/volleyball-player.jpg'
+      'assets/images/volleyball-training.png',
+      'assets/images/volleyball-player.png',
+      'assets/images/volleyball-team.png',
+      'assets/images/volleyball-spike.png'
     ],
     comments: []
   },
@@ -63,12 +65,12 @@ export const NEWS_ARTICLES: NewsArticle[] = [
     isFavorite: false,
     content:
       'Artificial Intelligence is reshaping our world. From autonomous vehicles to personalized medicine, discover the breakthroughs that are defining the next generation of technology.',
-    mainImage: 'https://i.ibb.co/WcWzX4Y/ai-technology.jpg',
+    mainImage: 'assets/images/ai-technology.png',
     images: [
-      'https://i.ibb.co/WcWzX4Y/ai-technology.jpg',
-      'https://i.ibb.co/bB4kH1t/ai-robot.jpg',
-      'https://i.ibb.co/yQyFz4x/ai-data.jpg',
-      'https://i.ibb.co/pwnM9y5/ai-future.jpg'
+      'assets/images/ai-technology.png',
+      'assets/images/ai-robot.png',
+      'assets/images/ai-data.png',
+      'assets/images/ai-future.png'
     ],
     comments: []
   },
@@ -83,12 +85,69 @@ export const NEWS_ARTICLES: NewsArticle[] = [
     isFavorite: false,
     content:
       'New fiscal policies have sent ripples through the global markets. Experts analyze the potential long-term effects on trade and investment across major economies.',
-    mainImage: 'https://i.ibb.co/3YYvGvV/stock-market.jpg',
+    mainImage: 'assets/images/stock-market.png',
     images: [
-      'https://i.ibb.co/3YYvGvV/stock-market.jpg',
-      'https://i.ibb.co/tLWj4G4/economy-chart.jpg',
-      'https://i.ibb.co/Xz1Tj4p/global-trade.jpg',
-      'https://i.ibb.co/1fWbY5S/finance-news.jpg'
+        'assets/images/stock-market.png',
+        'assets/images/economic-policy.png',
+        'assets/images/global-finance.png',
+        'assets/images/trade-investment.png'
+    ],
+    comments: []
+  },
+  {
+    id: 5,
+    title: 'Quantum Computing Breakthrough Announced',
+    author: 'TechCrunch',
+    date: 'Mar 5, 2025',
+    categories: ['Technology', 'Economy'],
+    rating: 4.7,
+    ratingsCount: 320,
+    isFavorite: false,
+    content: 'A major breakthrough in quantum computing has been announced by leading researchers, promising to accelerate the development of ultra-fast and highly secure computing systems. This advancement involves the creation of more stable qubits and improved error correction techniques, which are essential for scaling quantum processors. Experts believe this could revolutionize industries such as cryptography, pharmaceuticals, and financial modeling, making previously impossible computations achievable in seconds.',
+    mainImage: 'assets/images/quantum-computer.png',
+    images: [
+        'assets/images/quantum-computer.png',
+        'assets/images/quantum-lab.png',
+        'assets/images/quantum-chip.png',
+        'assets/images/quantum-data.png'
+    ],
+    comments: []
+  },
+  {
+    id: 6,
+    title: 'Startup Funding Trends in Southeast Asia',
+    author: 'Startup Daily',
+    date: 'Mar 6, 2025',
+    categories: ['Economy', 'Technology'],
+    rating: 4.6,
+    ratingsCount: 180,
+    isFavorite: false,
+    content: 'Startup ecosystems across Southeast Asia are experiencing a surge in funding, driven by increased interest from global venture capital firms and government-backed innovation programs. Countries like Indonesia, Vietnam, and Singapore are leading the charge, with fintech, healthtech, and e-commerce startups attracting the most investment. Analysts predict that this trend will continue as digital adoption grows and regional markets mature, creating new opportunities for entrepreneurs and investors alike.',
+    mainImage: 'assets/images/startup-funding.png',
+    images: [
+        'assets/images/startup-funding.png',  
+        'assets/images/startup-team.png',
+        'assets/images/startup-pitch.png',
+        'assets/images/startup-growth.png'
+    ],
+    comments: []
+  },
+  {
+    id: 7,
+    title: 'Mental Health Awareness in Sports',
+    author: 'HealthLine',
+    date: 'Mar 7, 2025',
+    categories: ['Health', 'Sports'],
+    rating: 4.4,
+    ratingsCount: 95,
+    isFavorite: false,
+    content: 'Mental health has become a growing concern in the world of sports, with athletes increasingly speaking out about the pressures they face both on and off the field. From performance anxiety to burnout, the psychological challenges of competitive sports are gaining recognition. Organizations and teams are now implementing mental wellness programs, offering counseling and support to help athletes maintain balance and resilience. This shift marks a significant step toward destigmatizing mental health in athletic communities.',
+    mainImage: 'assets/images/mental-health-sports.png',
+    images: [
+      'assets/images/mental-health-sports.png',
+      'assets/images/mental-health-athlete.png',
+      'assets/images/mental-health-support.png',
+      'assets/images/mental-health-talk.png'
     ],
     comments: []
   }

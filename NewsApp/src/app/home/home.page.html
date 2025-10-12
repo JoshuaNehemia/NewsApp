@@ -1,8 +1,15 @@
 <ion-header [translucent]="true">
   <ion-toolbar>
+    <ion-buttons slot="start">
+      <ion-button (click)="logout()">
+        <ion-icon slot="icon-only" name="log-out-outline"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+
     <ion-title>
       Breaking News
     </ion-title>
+
     <ion-buttons slot="end">
       <ion-button [routerLink]="['/search']">
         <ion-icon slot="icon-only" name="search-outline"></ion-icon>
@@ -39,7 +46,6 @@
     </ion-chip>
   </div>
 
-
   <ion-list-header>
     <ion-label>Recommendation</ion-label>
   </ion-list-header>
@@ -58,5 +64,4 @@
       </ion-label>
     </ion-item>
   </ion-list>
-
 </ion-content>
