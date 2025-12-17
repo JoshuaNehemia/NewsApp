@@ -60,10 +60,12 @@ CREATE TABLE IF NOT EXISTS `tcities` (
   `id` BIGINT NOT NULL AUTO_INCREMENT,
   `country_division_id` BIGINT NOT NULL,
   `name` VARCHAR(100) NOT NULL,
+  `latitude` DECIMAL(9,6) NOT NULL COMMENT 'Latitude in degrees',
+  `longitude` DECIMAL(9,6) NOT NULL COMMENT 'Longitude in degrees',
   `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  
-  CONSTRAINT `pk_tcities` 
+
+  CONSTRAINT `pk_tcities`
     PRIMARY KEY (`id`),
   CONSTRAINT `uq_tcities_division_name`
     UNIQUE (`country_division_id`, `name`),
@@ -71,10 +73,14 @@ CREATE TABLE IF NOT EXISTS `tcities` (
     FOREIGN KEY (`country_division_id`)
     REFERENCES `tcountry_divisions` (`id`)
     ON DELETE RESTRICT
-    ON UPDATE CASCADE
-) 
+    ON UPDATE CASCADE,
+
+  INDEX `idx_tcities_lat_lng` (`latitude`, `longitude`)
+)
 ENGINE=InnoDB
 COMMENT='Table for cities list';
+
+
 
 -- -----------------------------------------------------
 -- Table `tmedias`
@@ -183,7 +189,7 @@ COMMENT='Extended profile details for standard readers';
 -- -----------------------------------------------------
 CREATE TABLE IF NOT EXISTS `twriters` (
   `username` VARCHAR(100) NOT NULL,
-  `tmedia_id` BIGINT NOT NULL,
+  `media_id` BIGINT NOT NULL,
 
   `role` ENUM('staff','contributor','editor') DEFAULT 'contributor',
 
@@ -207,8 +213,7 @@ CREATE TABLE IF NOT EXISTS `twriters` (
     ON DELETE CASCADE
     ON UPDATE CASCADE,
 
-  INDEX `idx_twriters_media` (`tmedia_id`),
-  INDEX `idx_twriters_active` (`is_active`)
+  INDEX `idx_twriters_media` (`tmedia_id`)
 ) 
 ENGINE=InnoDB
 COMMENT='Extended profile details for writers';
@@ -379,16 +384,19 @@ COMMENT = 'Records of user payments and subscription validity';
 CREATE TABLE IF NOT EXISTS `tnews` (
   `id` BIGINT NOT NULL AUTO_INCREMENT,
   `writer_username` VARCHAR(100) NOT NULL,
-  `tcategories_id` BIGINT NOT NULL,
+  `categories_id` BIGINT NOT NULL,
+  `city_id` BIGINT NOT NULL,
   `title` VARCHAR(255) NOT NULL,
   `slug` VARCHAR(255) NOT NULL,
   `content` LONGTEXT NOT NULL,
   `is_published` TINYINT(1) DEFAULT 0,
   `view_count` BIGINT DEFAULT 0,
+  `latitude` DECIMAL(9,6) NULL COMMENT 'Latitude in degrees, for precise location',
+  `longitude` DECIMAL(9,6) NULL COMMENT 'Longitude in degrees, for precise location',
   `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   
-  CONSTRAINT `pk_tnews` 
+  CONSTRAINT `pk_tnews`
     PRIMARY KEY (`id`),
   CONSTRAINT `uq_tnews_slug`
     UNIQUE (`slug`),
@@ -402,18 +410,25 @@ CREATE TABLE IF NOT EXISTS `tnews` (
     REFERENCES `tcategories` (`id`)
     ON DELETE RESTRICT
     ON UPDATE CASCADE,
-    
+  CONSTRAINT `fk_tnews_city`
+    FOREIGN KEY (`city_id`)
+    REFERENCES `tcities` (`id`)
+    ON DELETE RESTRICT
+    ON UPDATE CASCADE,
+
   INDEX `idx_tnews_writer` (`writer_username`),
-  INDEX `idx_tnews_category` (`tcategories_id`)
+  INDEX `idx_tnews_category` (`tcategories_id`),
+  INDEX `idx_tnews_city` (`city_id`)
 )
 ENGINE = InnoDB
 COMMENT = 'Stores the actual news articles';
+
 
 -- -----------------------------------------------------
 -- Table `tlikes`
 -- -----------------------------------------------------
 CREATE TABLE IF NOT EXISTS `tlikes` (
-  `tnews_id` BIGINT NOT NULL,
+  `news_id` BIGINT NOT NULL,
   `username` VARCHAR(100) NOT NULL,
   `is_like` TINYINT NOT NULL COMMENT '1 for like, 0 for dislike',
   `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -442,7 +457,7 @@ COMMENT = 'Stores the like and dislike of news articles';
 -- -----------------------------------------------------
 CREATE TABLE IF NOT EXISTS `trate` (
   `id` BIGINT NOT NULL AUTO_INCREMENT,
-  `tnews_id` BIGINT NOT NULL,
+  `news_id` BIGINT NOT NULL,
   `username` VARCHAR(100) NOT NULL,
   `rate` INT NOT NULL COMMENT 'From 0 - 5',
   `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -471,7 +486,7 @@ COMMENT = 'Stores the numeric rating of articles';
 -- -----------------------------------------------------
 CREATE TABLE IF NOT EXISTS `timages` (
   `id` BIGINT NOT NULL AUTO_INCREMENT,
-  `tnews_id` BIGINT NOT NULL,
+  `news_id` BIGINT NOT NULL,
   `image_path` VARCHAR(255) NOT NULL,
   `alt_text` VARCHAR(150) NULL,
   `sort_order` INT DEFAULT 0,
@@ -496,8 +511,8 @@ COMMENT = 'Gallery images attached to an article';
 -- -----------------------------------------------------
 CREATE TABLE IF NOT EXISTS `tcomments` (
   `id` BIGINT NOT NULL AUTO_INCREMENT,
-  `tnews_id` BIGINT NOT NULL,
-  `user_username` VARCHAR(100) NOT NULL,
+  `news_id` BIGINT NOT NULL,
+  `username` VARCHAR(100) NOT NULL,
   `reply_to_id` BIGINT NULL DEFAULT NULL,
   `content` TEXT NOT NULL,
   `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -516,14 +531,14 @@ CREATE TABLE IF NOT EXISTS `tcomments` (
     ON DELETE CASCADE
     ON UPDATE NO ACTION,
   CONSTRAINT `fk_tcomments_user`
-    FOREIGN KEY (`user_username`)
+    FOREIGN KEY (`username`)
     REFERENCES `tusers` (`username`)
     ON DELETE CASCADE
     ON UPDATE CASCADE,
 
   INDEX `idx_tcomments_parent` (`reply_to_id`),
   INDEX `idx_tcomments_news` (`tnews_id`),
-  INDEX `idx_tcomments_user` (`user_username`)
+  INDEX `idx_tcomments_user` (`username`)
 )
 ENGINE = InnoDB
 COMMENT = 'Threaded comments section for articles';
@@ -591,14 +606,14 @@ COMMENT = 'Moderation queue for reported content';
 -- Table `tbookmarks`
 -- -----------------------------------------------------
 CREATE TABLE IF NOT EXISTS `tbookmarks` (
-  `user_username` VARCHAR(100) NOT NULL,
-  `tnews_id` BIGINT NOT NULL,
+  `username` VARCHAR(100) NOT NULL,
+  `news_id` BIGINT NOT NULL,
   `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   
   CONSTRAINT `pk_tbookmarks`
-    PRIMARY KEY (`user_username`, `tnews_id`),
+    PRIMARY KEY (`username`, `tnews_id`),
   CONSTRAINT `fk_tbookmarks_user`
-    FOREIGN KEY (`user_username`)
+    FOREIGN KEY (`username`)
     REFERENCES `tusers` (`username`)
     ON DELETE CASCADE
     ON UPDATE CASCADE,
@@ -617,8 +632,8 @@ COMMENT = 'Saved articles/Reading list for users';
 -- Table `tnews_tags`
 -- -----------------------------------------------------
 CREATE TABLE IF NOT EXISTS `tnews_tags` (
-  `tnews_id` BIGINT NOT NULL,
-  `ttags_id` BIGINT NOT NULL,
+  `news_id` BIGINT NOT NULL,
+  `tags_id` BIGINT NOT NULL,
   
   CONSTRAINT `pk_tnews_tags`
     PRIMARY KEY (`tnews_id`, `ttags_id`),
@@ -642,14 +657,14 @@ COMMENT = 'Links articles to specific tags';
 -- Table `tfollows`
 -- -----------------------------------------------------
 CREATE TABLE IF NOT EXISTS `tfollows` (
-  `user_username` VARCHAR(100) NOT NULL,
+  `username` VARCHAR(100) NOT NULL,
   `writer_username` VARCHAR(100) NOT NULL,
   `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   
   CONSTRAINT `pk_tfollows`
-    PRIMARY KEY (`user_username`, `writer_username`),
+    PRIMARY KEY (`username`, `writer_username`),
   CONSTRAINT `fk_tfollows_user` 
-    FOREIGN KEY (`user_username`) 
+    FOREIGN KEY (`username`) 
     REFERENCES `tusers` (`username`) 
     ON DELETE CASCADE,
   CONSTRAINT `fk_tfollows_writer` 
@@ -664,14 +679,14 @@ COMMENT = 'User follows Writer relationship';
 -- Table `treading_history`
 -- -----------------------------------------------------
 CREATE TABLE IF NOT EXISTS `treading_history` (
-  `user_username` VARCHAR(100) NOT NULL,
-  `tnews_id` BIGINT NOT NULL,
+  `username` VARCHAR(100) NOT NULL,
+  `news_id` BIGINT NOT NULL,
   `last_viewed_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   
   CONSTRAINT `pk_treading_history`
-    PRIMARY KEY (`user_username`, `tnews_id`),
+    PRIMARY KEY (`username`, `tnews_id`),
   CONSTRAINT `fk_treading_history_user`
-    FOREIGN KEY (`user_username`)
+    FOREIGN KEY (`username`)
     REFERENCES `tusers` (`username`)
     ON DELETE CASCADE
     ON UPDATE CASCADE,
