@@ -59,12 +59,12 @@ class CountryDivision
         return $this;
     }
 
-    public function to_array(): array
+    public function toArray(): array
     {
         return array(
             "id" => $this->id,
             "name" => $this->name,
-            "country" => $this->country->to_array()
+            "country" => $this->country->toArray()
         );
     }
 

@@ -4,20 +4,23 @@ namespace MODELS;
 
 require_once(__DIR__ . "/CountryDivision.php");
 require_once(__DIR__ . "/../CORE/Geolocation.php");
+require_once(__DIR__ . "/../CORE/DatabaseConnection.php");
 
 use MODELS\CountryDivision;
 use CORE\Geolocation;
+use CORE\DatabaseConnection;
 use Exception;
 
-class City
+class City extends DatabaseConnection
 {
-    // Fields
+    #region FIELDS
     private int $id;
     private string $name;
     private CountryDivision $country_division;
     private Geolocation $geolocation;
+    #endregion
 
-    // Constructor
+    #region CONSTRUCTOR
     public function __construct(int $id = null, string $name = null, CountryDivision $country_division = null, Geolocation $geolocation = null)
     {
         if ($id != null)
@@ -29,8 +32,9 @@ class City
         if ($geolocation != null)
             $this->setGeolocation($geolocation);
     }
+    #endregion
 
-    // Getter
+    #region GETTER
     public function getId(): int
     {
         return $this->id;
@@ -49,8 +53,9 @@ class City
     {
         return $this->geolocation;
     }
+    #endregion
 
-    // Setter
+    #region SETTER
     public function setId(int $id): City
     {
         if ($id <= 0)
@@ -82,15 +87,85 @@ class City
         $this->geolocation = $geolocation;
         return $this;
     }
+    #endregion
 
-    public function to_array(): array
+    #region FUNCTION
+    public function toArray(): array
     {
         return array(
             "id" => $this->id,
             "name" => $this->name,
-            "country_division" => $this->country_division->to_array(),
-            "geolocation" => $this->geolocation->to_array()
+            "country_division" => $this->country_division->toArray(),
+            "geolocation" => $this->geolocation->toArray()
         );
     }
+    #endregion
+
+    #region DATABASE
+    public function selectAllCitiesFromDatabase(): array
+    {
+        $sqlQuery = "SELECT 
+                        c.id   AS city_id, 
+                        c.name AS city_name, 
+                        c.latitude  AS city_latitude, 
+                        c.longitude AS city_longitude,
+                        cd.id  AS cd_id,
+                        cd.name AS cd_name,
+                        ct.id  AS ct_id,
+                        ct.name AS ct_name,
+                        ct.code AS ct_code
+                    FROM tcities c
+                    INNER JOIN tcountry_divisions cd ON c.country_division_id = cd.id
+                    INNER JOIN tcountries ct ON cd.country_id = ct.id";
+
+        $cities = [];
+        try {
+
+            $this->startConnection();
+            $stmt = $this->conn->prepare($sqlQuery);
+
+            if (!$stmt) {
+                throw new Exception($this->conn->error);
+            }
+
+            $stmt->execute();
+            $result = $stmt->get_result();
+
+            while ($row = $result->fetch_assoc()) {
+
+                $country = new Country(
+                    (int) $row['ct_id'],
+                    $row['ct_name'],
+                    $row['ct_code']
+                );
+
+                $countryDivision = new CountryDivision(
+                    (int) $row['cd_id'],
+                    $row['cd_name'],
+                    $country
+                );
+
+                $geolocation = new Geolocation(
+                    (float) $row['city_latitude'],
+                    (float) $row['city_longitude']
+                );
+
+                $city = new City(
+                    (int) $row['city_id'],
+                    $row['city_name'],
+                    $countryDivision,
+                    $geolocation
+                );
+                $cities[] = $city;
+            }
+            $stmt->close();
+        } catch (Exception $e) {
+            throw $e;
+        } finally {
+            $this->closeConnection();
+        }
+        return $cities;
+    }
+    #endregion
 
 }

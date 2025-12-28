@@ -127,7 +127,7 @@ COMMENT='Media organizations or publishers';
 -- Table `taccounts`
 -- -----------------------------------------------------
 CREATE TABLE IF NOT EXISTS `taccounts` (
-  `username` VARCHAR(100) NOT NULL,
+  `username` VARCHAR(30) NOT NULL,
   `password` VARCHAR(255) NOT NULL COMMENT 'Hashed password',
   `fullname` VARCHAR(200) NOT NULL,
   `email` VARCHAR(255) NOT NULL,
@@ -168,8 +168,8 @@ CREATE TABLE IF NOT EXISTS `tusers` (
   `username` VARCHAR(100) NOT NULL,
   `birthdate` DATE NULL COMMENT 'yyyy-mm-dd',
   `gender` ENUM('male','female') NULL,
-  `phone` VARCHAR(20) NULL,
-  `bio` TEXT NULL,
+  `phone_number` VARCHAR(20) NULL,
+  `biography` TEXT NULL,
 
   `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
 

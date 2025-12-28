@@ -35,19 +35,19 @@ class Geolocation {
         $this->longitude = $longitude;
     }
 
-    public function to_array(): array {
+    public function toArray(): array {
         return array(
             'latitude' => $this->latitude,
             'longitude' => $this->longitude,
         );
     }
 
-    public function calculate_distance_to(Geolocation $other): float {
+    public function calculateDistanceTo(Geolocation $destination): float {
         $earthRadius = 6371;
         $latFrom = deg2rad($this->latitude);
         $lonFrom = deg2rad($this->longitude);
-        $latTo   = deg2rad($other->latitude);
-        $lonTo   = deg2rad($other->longitude);
+        $latTo   = deg2rad($destination->latitude);
+        $lonTo   = deg2rad($destination->longitude);
 
         $latDelta = $latTo - $latFrom;
         $lonDelta = $lonTo - $lonFrom;
