@@ -19,6 +19,7 @@ CREATE TABLE IF NOT EXISTS `tcountries` (
   `id` BIGINT NOT NULL AUTO_INCREMENT,
   `name` VARCHAR(100) NOT NULL,
   `code` CHAR(3) NOT NULL COMMENT 'ISO 3166-1 alpha-3 code',
+  `telephone` VARCHAR(3) NOT NULL COMMENT 'Telephone country code'
   `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   
@@ -79,8 +80,6 @@ CREATE TABLE IF NOT EXISTS `tcities` (
 )
 ENGINE=InnoDB
 COMMENT='Table for cities list';
-
-
 
 -- -----------------------------------------------------
 -- Table `tmedias`

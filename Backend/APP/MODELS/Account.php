@@ -2,13 +2,17 @@
 
 namespace MODELS;
 
+#region REQUIRE
 require_once(__DIR__ . "/City.php");
 require_once(__DIR__ . "/../config.php");
 require_once(__DIR__ . "/../CORE/Geolocation.php");
+#endregion
 
+#region USE
 use CORE\Geolocation;
 use MODELS\City;
 use Exception;
+#endregion
 
 class Account
 {
@@ -147,5 +151,9 @@ class Account
         $this->currentUserLocation = $location;
         return $this;
     }
+    #endregion
+
+    #region DATABASE
+
     #endregion
 }

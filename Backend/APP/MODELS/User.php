@@ -2,13 +2,17 @@
 
 namespace MODELS;
 
+#region REQUIRE
 require_once(__DIR__ . "/City.php");
 require_once(__DIR__ . "/Account.php");
 require_once(__DIR__ . "/../CORE/Geolocation.php");
+#endregion
 
+#region USE
 use MODELS\Account;
 use CORE\Geolocation;
 use Exception;
+#endregion
 
 class User extends Account
 {
