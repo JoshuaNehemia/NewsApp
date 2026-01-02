@@ -225,6 +225,153 @@ class RepoAccount
             }
         }
     }
+    #endregion
 
+    #region CREATE ACCOUNT
+    private function createAccount(Account $account, string $hashedPassword, $conn): void
+    {
+        $sql = "
+        INSERT INTO accounts (
+            username,
+            password,
+            fullname,
+            email,
+            role,
+            profile_picture_address
+        )
+        VALUES (?, ?, ?, ?, ?, ?)
+    ";
+
+        $stmt = $conn->prepare($sql);
+        if (!$stmt) {
+            throw new Exception("Failed to prepare account insert");
+        }
+
+        $stmt->bind_param(
+            "ssssss",
+            $account->getUsername(),
+            $hashedPassword,
+            $account->getFullname(),
+            $account->getEmail(),
+            $account->getRole(),
+            $account->getProfilePictureAddress()
+        );
+
+        if (!$stmt->execute()) {
+            throw new Exception("Failed to create account: {$stmt->error}");
+        }
+
+        $stmt->close();
+    }
+    #endregion
+    #region CREATE USER
+    public function createUser(User $user, string $hashedPassword): void
+    {
+        $conn = $this->db->connect();
+        $stmt = null;
+
+        try {
+            $conn->begin_transaction();
+
+            $this->createAccount($user, $hashedPassword, $conn);
+
+            $sql = "
+            INSERT INTO users (
+                username,
+                birthdate,
+                gender,
+                phone_number,
+                biography
+            )
+            VALUES (?, ?, ?, ?, ?)
+        ";
+
+            $stmt = $conn->prepare($sql);
+            if (!$stmt) {
+                throw new Exception("Failed to prepare user insert");
+            }
+
+            $username = $user->getUsername();
+            $birthdate = $user->getBirthdate();
+            $gender = $user->getGender();
+            $phone = $user->getPhoneNumber();
+            $biography = $user->getBiography();
+
+            $stmt->bind_param(
+                "sssss",
+                $username,
+                $birthdate,
+                $gender,
+                $phone,
+                $biography
+            );
+
+
+            if (!$stmt->execute()) {
+                throw new Exception("Failed to create user profile: {$stmt->error}");
+            }
+
+            $conn->commit();
+        } catch (Exception $e) {
+            $conn->rollback();
+            throw $e;
+        } finally {
+            $stmt?->close();
+            $conn->close();
+        }
+    }
+    #endregion
+    #region CREATE WRITER
+    public function createWriter(Writer $writer, string $hashedPassword): void
+    {
+        $conn = $this->db->connect();
+        $stmt = null;
+
+        try {
+            $conn->begin_transaction();
+
+            $this->createAccount($writer, $hashedPassword, $conn);
+
+            $sql = "
+            INSERT INTO writers (
+                username,
+                biography,
+                is_verified,
+                media_id
+            )
+            VALUES (?, ?, ?, ?)
+        ";
+
+            $stmt = $conn->prepare($sql);
+            if (!$stmt) {
+                throw new Exception("Failed to prepare writer insert");
+            }
+
+            $username = $writer->getUsername();
+            $biography = $writer->getBiography();
+            $isVerified = $writer->isVerified() ? 1 : 0;
+            $mediaId = $writer->getMedia()->getId();
+
+            $stmt->bind_param(
+                "ssii",
+                $username,
+                $biography,
+                $isVerified,
+                $mediaId
+            );
+
+            if (!$stmt->execute()) {
+                throw new Exception("Failed to create writer profile: {$stmt->error}");
+            }
+
+            $conn->commit();
+        } catch (Exception $e) {
+            $conn->rollback();
+            throw $e;
+        } finally {
+            $stmt?->close();
+            $conn->close();
+        }
+    }
     #endregion
 }

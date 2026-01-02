@@ -12,6 +12,7 @@ use MODELS\CORE\Geolocation;
 use MODELS\ACCOUNT\Writer;
 use Exception;
 #endregion
+
 class News
 {
     #region FIELDS
@@ -21,9 +22,15 @@ class News
     private string $content;
     private array $images = [];
     private Writer $author;
-    private Geolocation $location;
+    private ?Geolocation $location = null;
     private string $category;
-    private int $view_count;
+
+    private int $view_count = 0;
+    private int $like_count = 0;
+
+    private array $tags = [];
+    private float $rating = 0.0;
+
     private string $created_at;
     private string $updated_at;
     #endregion
@@ -31,6 +38,8 @@ class News
     #region CONSTRUCTOR
     public function __construct()
     {
+        $this->created_at = date('Y-m-d H:i:s');
+        $this->updated_at = date('Y-m-d H:i:s');
     }
     #endregion
 
@@ -65,7 +74,7 @@ class News
         return $this->author;
     }
 
-    public function getLocation(): Geolocation
+    public function getLocation(): ?Geolocation
     {
         return $this->location;
     }
@@ -73,6 +82,26 @@ class News
     public function getCategory(): string
     {
         return $this->category;
+    }
+
+    public function getViewCount(): int
+    {
+        return $this->view_count;
+    }
+
+    public function getLikeCount(): int
+    {
+        return $this->like_count;
+    }
+
+    public function getTags(): array
+    {
+        return $this->tags;
+    }
+
+    public function getRating(): float
+    {
+        return $this->rating;
     }
 
     public function getCreatedAt(): string
@@ -83,11 +112,6 @@ class News
     public function getUpdatedAt(): string
     {
         return $this->updated_at;
-    }
-
-    public function getViewCount(): int
-    {
-        return $this->view_count;
     }
     #endregion
 
@@ -104,11 +128,9 @@ class News
     public function setTitle(string $title): self
     {
         $title = trim($title);
-
         if ($title === '') {
             throw new Exception("Title cannot be empty");
         }
-
         $this->title = $title;
         return $this;
     }
@@ -118,7 +140,6 @@ class News
         if (!preg_match('/^[a-z0-9-]+$/', $slug)) {
             throw new Exception("Invalid slug format");
         }
-
         $this->slug = $slug;
         return $this;
     }
@@ -128,7 +149,6 @@ class News
         if (trim($content) === '') {
             throw new Exception("Content cannot be empty");
         }
-
         $this->content = $content;
         return $this;
     }
@@ -141,6 +161,9 @@ class News
 
     public function addImage(string $image): self
     {
+        if (trim($image) === '') {
+            throw new Exception("Image path cannot be empty");
+        }
         $this->images[] = $image;
         return $this;
     }
@@ -151,7 +174,7 @@ class News
         return $this;
     }
 
-    public function setLocation(Geolocation $location): self
+    public function setLocation(?Geolocation $location): self
     {
         $this->location = $location;
         return $this;
@@ -166,22 +189,50 @@ class News
         return $this;
     }
 
-    public function setCreatedAt(string $created_at): self
+    public function setViewCount(int $view_count): self
     {
-        $this->created_at = $created_at;
+        if ($view_count < 0) {
+            throw new Exception("View count cannot be negative");
+        }
+        $this->view_count = $view_count;
         return $this;
     }
 
-    public function setUpdatedAt(string $updated_at): self
+    public function setLikeCount(int $like_count): self
     {
-        $this->updated_at = $updated_at;
+        if ($like_count < 0) {
+            throw new Exception("Like count cannot be negative");
+        }
+        $this->like_count = $like_count;
         return $this;
     }
-    public function setViewCount(int $view_count): self
+
+    public function setTags(array $tags): self
     {
-        if ($view_count < 0)
-            throw new Exception("News view count can't be negative");
-        $this->view_count = $view_count;
+        $this->tags = array_values(array_unique(array_map('trim', $tags)));
+        return $this;
+    }
+
+    public function addTag(string $tag): self
+    {
+        $tag = trim($tag);
+        if ($tag === '') {
+            throw new Exception("Tag cannot be empty");
+        }
+
+        if (!in_array($tag, $this->tags, true)) {
+            $this->tags[] = $tag;
+        }
+
+        return $this;
+    }
+
+    public function setRating(float $rating): self
+    {
+        if ($rating < 0 || $rating > 5) {
+            throw new Exception("Rating must be between 0 and 5");
+        }
+        $this->rating = $rating;
         return $this;
     }
     #endregion
@@ -197,8 +248,11 @@ class News
             'images' => $this->images,
             'category' => $this->category,
             'view_count' => $this->view_count,
+            'like_count' => $this->like_count,
+            'rating' => $this->rating,
+            'tags' => $this->tags,
             'author' => $this->author->toArray(),
-            'location' => $this->location->toArray(),
+            'location' => $this->location?->toArray(),
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at,
         ];
