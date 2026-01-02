@@ -1,16 +1,15 @@
 <?php
 
-namespace MODELS;
+namespace MODELS\USER;
 
 #region REQUIRE
-require_once(__DIR__ . "/City.php");
 require_once(__DIR__ . "/Account.php");
 require_once(__DIR__ . "/../CORE/Geolocation.php");
 #endregion
 
 #region USE
-use MODELS\Account;
-use CORE\Geolocation;
+use MODELS\ACCOUNT\Account;
+use MODELS\CORE\Geolocation;
 use Exception;
 #endregion
 
@@ -21,40 +20,12 @@ class User extends Account
     private string $phone_number;
     private string $gender;
     private string $biography;
+    private Geolocation $current_location;
     #endregion
 
     #region CONSTRUCTOR
     public function __construct(
-        ?string $username = null,
-        ?string $fullname = null,
-        ?string $email = null,
-        ?City $city = null,
-        ?string $role = null,
-        ?string $profile_picture_address = null,
-        ?Geolocation $currentUserLocation = null,
-        ?string $birthdate = null,
-        ?string $phone_number = null,
-        ?string $gender = null,
-        ?string $biography = null
     ) {
-        parent::__construct(
-            $username,
-            $fullname,
-            $email,
-            $city,
-            $role,
-            $profile_picture_address,
-            $currentUserLocation
-        );
-
-        if ($birthdate !== null)
-            $this->setBirthdate($birthdate);
-        if ($phone_number !== null)
-            $this->setPhoneNumber($phone_number);
-        if ($gender !== null)
-            $this->setGender($gender);
-        if ($biography !== null)
-            $this->setBiography($biography);
     }
     #endregion
 
@@ -77,6 +48,11 @@ class User extends Account
     public function getBiography(): string
     {
         return $this->biography;
+    }
+
+    public function getCurrentLocation(): Geolocation
+    {
+        return $this->current_location;
     }
     #endregion
 
@@ -104,7 +80,7 @@ class User extends Account
 
     public function setGender(string $gender): self
     {
-        if (!in_array($gender, USER_GENDERS, true)) 
+        if (!in_array($gender, USER_GENDERS, true))
             throw new Exception("Invalid gender value");
         $this->gender = $gender;
         return $this;
@@ -117,6 +93,30 @@ class User extends Account
             throw new Exception("Biography must not exceed 500 characters");
         $this->biography = $biography;
         return $this;
+    }
+
+    public function setCurrentLocation(Geolocation $location): self
+    {
+        if (!($location instanceof Geolocation))
+            throw new Exception("Account current_location must be an instance of Geolocation");
+        $this->current_location = $location;
+        return $this;
+    }
+    #endregion
+
+    #region UTILITIES
+    public function toArray(): array
+    {
+        return array_merge(
+            parent::toArray(),
+            [
+                "birthdate" => $this->birthdate,
+                "phone_number" => $this->phone_number,
+                "gender" => $this->gender,
+                "biography" => $this->biography,
+                "current_location" => $this->current_location
+            ]
+        );
     }
     #endregion
 }

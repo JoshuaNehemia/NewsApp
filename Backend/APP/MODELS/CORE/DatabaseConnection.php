@@ -1,11 +1,15 @@
 <?php
 
-namespace CORE;
+namespace MODELS\CORE;
 
+#region REQUIRE
 require_once(__DIR__ . "/../database.php");
+#endregion
 
+#region USE
 use mysqli;
 use Exception;
+#endregion
 
 /**
  * Class DatabaseConnection
@@ -18,17 +22,36 @@ use Exception;
  */
 class DatabaseConnection
 {
+    #region FIELDS
+    private string $database_address = DATABASE_ADDRESS;
+    private string $dtabase_schema = DATABASE_SCHEMA;
+    private string $database_username = DATABASE_USERNAME;
+    private string $database_password = DATABASE_PASSWORD;
+    protected ?mysqli $conn;
+    #endregion
 
-    private $database_address = DATABASE_ADDRESS;
-    private $dtabase_schema = DATABASE_SCHEMA;
-    private $database_username = DATABASE_USERNAME;
-    private $database_password = DATABASE_PASSWORD;
-    protected $conn;
+    #region CONSTRUCTOR
+    public function __construct()
+    {
+    }
+    #endregion
 
-    public function __construct(){}
-    public function __destruct(){}
+    #region DESTRUCTOR
+    public function __destruct()
+    {
+    }
+    #endregion
 
-    protected function startConnection()
+    #region GETTER
+    public function getConnection(): mysqli
+    {
+        return $this->conn;
+    }
+    #endregion
+
+
+    #region BOOTSTRAP
+    public function connect()
     {
         if ($this->conn == null) {
             $this->conn = new mysqli(
@@ -42,13 +65,15 @@ class DatabaseConnection
                 throw new Exception("Server unable to connect to database: " . $this->conn->connect_error);
             }
         }
+        return $this->conn;
     }
 
-    protected function closeConnection()
+    public function close()
     {
         if ($this->conn !== null) {
             $this->conn->close();
             $this->conn = null;
         }
     }
+    #endregion
 }

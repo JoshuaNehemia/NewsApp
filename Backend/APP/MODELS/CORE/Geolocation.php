@@ -1,6 +1,6 @@
 <?php
 
-namespace CORE;
+namespace MODELS\CORE;
 
 use Exception;
 
@@ -21,25 +21,27 @@ class Geolocation {
         return $this->longitude;
     }
     
-    public function setLatitude(float $latitude): void {
+    public function setLatitude(float $latitude): self {
         if ($latitude < -90 || $latitude > 90) {
             throw new Exception('Geolocation latitude must be between -90 and 90.');
         }
         $this->latitude = $latitude;
+        return $this;
     }
 
-    public function setLongitude(float $longitude): void {
+    public function setLongitude(float $longitude): self {
         if ($longitude < -180 || $longitude > 180) {
             throw new Exception('Longitude must be between -180 and 180.');
         }
         $this->longitude = $longitude;
+        return $this;
     }
 
     public function toArray(): array {
-        return array(
+        return [
             'latitude' => $this->latitude,
             'longitude' => $this->longitude,
-        );
+        ];
     }
 
     public function calculateDistanceTo(Geolocation $destination): float {

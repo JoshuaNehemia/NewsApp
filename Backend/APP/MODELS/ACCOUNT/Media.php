@@ -1,10 +1,15 @@
 <?php
 
-namespace MODELS;
+namespace MODELS\ACCOUNT;
 
+#region REQUIRE
+require_once(__DIR__ . "/../GEOGRAPHY/City.php");
+#endregion
+
+#region USE
+use MODELS\GEOGRAPHY\City;
 use Exception;
-
-require_once(__DIR__ . "/City.php");
+#endregion
 
 class Media
 {
@@ -14,11 +19,11 @@ class Media
     private string $slug;
     private string $company_name;
     private string $type;
-    private ?string $logo_address = null;
-    private ?string $picture_address = null;
-    private ?string $website = null;
+    private string $logo_address;
+    private string $picture_address;
+    private string $website;
     private string $email;
-    private ?string $description = null;
+    private string $description;
     private City $city;
     #endregion
 
@@ -55,17 +60,17 @@ class Media
         return $this->type;
     }
 
-    public function getLogoAddress(): ?string
+    public function getLogoAddress(): string
     {
         return $this->logo_address;
     }
 
-    public function getPictureAddress(): ?string
+    public function getPictureAddress(): string
     {
         return $this->picture_address;
     }
 
-    public function getWebsite(): ?string
+    public function getWebsite(): string
     {
         return $this->website;
     }
@@ -75,7 +80,7 @@ class Media
         return $this->email;
     }
 
-    public function getDescription(): ?string
+    public function getDescription(): string
     {
         return $this->description;
     }
@@ -87,80 +92,95 @@ class Media
     #endregion
 
     #region SETTER
-    public function setId(int $id): void
+    public function setId(int $id): self
     {
         if ($id < 0) {
-            throw new Exception("ID must be a positive integer");
+            throw new Exception("Media id must be a positive integer");
         }
         $this->id = $id;
+        return $this;
     }
 
-    public function setName(string $name): void
+    public function setName(string $name): self
     {
         if ($name === '') {
-            throw new Exception("Name cannot be empty");
+            throw new Exception("Media name cannot be empty");
         }
         $this->name = $name;
+        return $this;
     }
 
-    public function setSlug(string $slug): void
+    public function setSlug(string $slug): self
     {
         if ($slug === '') {
-            throw new Exception("Slug cannot be empty");
+            throw new Exception("Media slug cannot be empty");
         }
         $this->slug = $slug;
+        return $this;
     }
 
-    public function setCompanyName(string $companyName): void
+    public function setCompanyName(string $companyName): self
     {
         if ($companyName === '') {
-            throw new Exception("Company name cannot be empty");
+            throw new Exception("Media company name cannot be empty");
         }
         $this->company_name = $companyName;
+        return $this;
     }
 
-    public function setType(string $type): void
+    public function setType(string $type): self
     {
         if ($type === '') {
-            throw new Exception("Type cannot be empty");
+            throw new Exception("Media type cannot be empty");
         }
         $this->type = $type;
+        return $this;
     }
 
-    public function setLogoAddress(?string $logoAddress): void
+    public function setLogoAddress(?string $logoAddress): self
     {
         $this->logo_address = $logoAddress;
+        return $this;
     }
 
-    public function setPictureAddress(?string $pictureAddress): void
+    public function setPictureAddress(?string $pictureAddress): self
     {
         $this->picture_address = $pictureAddress;
+        return $this;
     }
 
-    public function setWebsite(?string $website): void
+    public function setWebsite(?string $website): self
     {
+        if (empty($website))
+            throw new Exception("Media website can't be empty");
         if ($website !== null && !filter_var($website, FILTER_VALIDATE_URL)) {
-            throw new Exception("Invalid website URL");
+            throw new Exception("Media have an invalid website URL");
         }
         $this->website = $website;
+        return $this;
     }
 
-    public function setEmail(string $email): void
+    public function setEmail(string $email): self
     {
+        if (empty($website))
+            throw new Exception("Media email can't be empty");
         if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-            throw new Exception("Invalid email address");
+            throw new Exception("Media have an invalid email address");
         }
         $this->email = $email;
+        return $this;
     }
 
-    public function setDescription(?string $description): void
+    public function setDescription(?string $description): self
     {
         $this->description = $description;
+        return $this;
     }
 
-    public function setCity(City $city): void
+    public function setCity(City $city): self
     {
         $this->city = $city;
+        return $this;
     }
     #endregion
 
@@ -178,7 +198,7 @@ class Media
             'website' => $this->website,
             'email' => $this->email,
             'description' => $this->description,
-            'city' => $this->city->toArray(),
+            'city' => $this->city->toArray()
         ];
     }
     #endregion

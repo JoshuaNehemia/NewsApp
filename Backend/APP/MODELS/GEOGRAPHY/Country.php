@@ -1,27 +1,26 @@
 <?php
 
-namespace MODELS;
+namespace MODELS\GEOGRAPHY;
+#region COUNTRY
 use Exception;
+#endregion
 
 class Country
 {
-    // Fields
+    #region FIELDS
     private $id;
     private $name;
     private $code;
+    private $telephone;
+    #endregion
 
-    // Constructor
-    public function __construct(int $id = null, string $name = null, string $code = null)
+    #region CONSTRUCT
+    public function __construct()
     {
-        if ($this->id != null)
-            $this->setId($id);
-        if ($name != null)
-            $this->setName($name);
-        if ($code != null)
-            $this->setCode($code);
     }
+    #endregion
 
-    // Getter
+    #region GETTER
     public function getId(): int
     {
         return $this->id;
@@ -37,15 +36,21 @@ class Country
         return $this->code;
     }
 
-    // Setter
-    public function setId(int $id): Country
+    public function getTelephone(): string
+    {
+        return $this->telephone;
+    }
+    #endregion
+
+    #region SETTER
+    public function setId(int $id): self
     {
         if ($id <= 0)
             throw new Exception("Country id can't be lower than equal zero");
         $this->id = $id;
         return $this;
     }
-    public function setName(string $name): Country
+    public function setName(string $name): self
     {
         if (empty($name))
             throw new Exception("Country name can't be empty");
@@ -53,7 +58,7 @@ class Country
         return $this;
     }
 
-    public function setCode(string $code): Country
+    public function setCode(string $code): self
     {
         if (empty($code))
             throw new Exception("Country code can't be empty");
@@ -63,12 +68,24 @@ class Country
         return $this;
     }
 
+    public function setTelephone(string $telephone): self
+    {
+        if (empty($telephone))
+            throw new Exception("Country telephone can't be empty");
+        $this->telephone = $telephone;
+        return $this;
+    }
+    #endregion
+
+    #region UTILITIES
     public function toArray(): array
     {
         return array(
-            "id"=>$this->id,
-            "name"=>$this->name,
-            "code"=>$this->code
+            "id" => $this->id,
+            "name" => $this->name,
+            "code" => $this->code,
+            "telephone" => $this->telephone
         );
     }
+    #endregion
 }

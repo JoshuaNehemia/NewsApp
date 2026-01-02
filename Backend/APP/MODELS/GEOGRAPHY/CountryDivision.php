@@ -1,10 +1,10 @@
 <?php
 
-namespace MODELS;
+namespace MODELS\GEOGRAPHY;
 
 require_once(__DIR__ . "/Country.php");
 
-use MODELS\Country;
+use MODELS\GEOGRAPHY\Country;
 use Exception;
 
 class CountryDivision
@@ -15,11 +15,8 @@ class CountryDivision
     private Country $country;
 
     // Constructor
-    public function __construct(int $id = null, string $name = null, Country $country = null)
+    public function __construct()
     {
-        if($id != null) $this->setId($id);
-        if($name != null) $this->setName($name);
-        if($country != null) $this->setCountry($country);
     }
 
     // Getter
@@ -38,21 +35,21 @@ class CountryDivision
     }
 
     // Setter
-    public function setId(int $id): CountryDivision
+    public function setId(int $id): self
     {
         if($id <=0) throw new Exception("CountryDivision id can't be lower than equal 0");
         $this->id = $id;
         return $this;
     }
 
-    public function setName(string $name): CountryDivision
+    public function setName(string $name): self
     {
         if(empty($name)) throw new Exception("CountryDivision name can't be empty");
         $this->name = $name;
         return $this;
     }
 
-    public function setCountry(Country $country): CountryDivision
+    public function setCountry(Country $country): self
     {
         if($country == null) throw new Exception("CountryDivision country can't be null");
         $this->country = $country;

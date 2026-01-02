@@ -1,16 +1,14 @@
 <?php
 
-namespace MODELS;
+namespace MODELS\ACCOUNT;
 
 #region REQUIRE
-require_once(__DIR__ . "/City.php");
-require_once(__DIR__ . "/../config.php");
-require_once(__DIR__ . "/../CORE/Geolocation.php");
+require_once(__DIR__ . "/../GEOGRAPHY/City.php");
+require_once(__DIR__ . "/../../config.php");
 #endregion
 
 #region USE
-use CORE\Geolocation;
-use MODELS\City;
+use MODELS\GEOGRAPHY\City;
 use Exception;
 #endregion
 
@@ -23,33 +21,12 @@ class Account
     private City $city;
     private string $role;
     private string $profile_picture_address;
-    private Geolocation $currentUserLocation;
+    private bool $is_subscribing;
     #endregion
 
     #region CONSTRUCTOR
     public function __construct(
-        ?string $username = null,
-        ?string $fullname = null,
-        ?string $email = null,
-        ?City $city = null,
-        ?string $role = null,
-        ?string $profile_picture_address = null,
-        ?Geolocation $currentUserLocation = null
     ) {
-        if ($username !== null)
-            $this->setUsername($username);
-        if ($fullname !== null)
-            $this->setFullname($fullname);
-        if ($email !== null)
-            $this->setEmail($email);
-        if ($city !== null)
-            $this->setCity($city);
-        if ($role !== null)
-            $this->setRole($role);
-        if ($profile_picture_address !== null)
-            $this->setProfilePictureAddress($profile_picture_address);
-        if ($currentUserLocation !== null)
-            $this->setCurrentUserLocation($currentUserLocation);
     }
     #endregion
 
@@ -78,9 +55,10 @@ class Account
     {
         return $this->profile_picture_address;
     }
-    public function getCurrentUserLocation(): Geolocation
+
+    public function getIsSubscribing(): bool
     {
-        return $this->currentUserLocation;
+        return $this->is_subscribing;
     }
     #endregion
 
@@ -90,13 +68,13 @@ class Account
         $username = trim($username);
 
         if ($username === '')
-            throw new Exception("Username cannot be empty");
+            throw new Exception("Account username cannot be empty");
 
         if (!preg_match('/^[a-zA-Z0-9_]$/', $username))
-            throw new Exception("Username must contain only letters, numbers, and underscores");
+            throw new Exception("Account username must contain only letters, numbers, and underscores");
 
         if (strlen($username) < 6 || strlen($username) > USERNAME_MAX_LENGTH)
-            throw new Exception("Username length must between 6 - 30 digits");
+            throw new Exception("Account username length must between 6 - 30 digits");
 
         $this->username = $username;
         return $this;
@@ -106,7 +84,7 @@ class Account
     {
         $fullname = trim($fullname);
         if (strlen($fullname) < 3 || strlen($fullname) > 200) {
-            throw new Exception("Full name must be between 3 and 100 characters");
+            throw new Exception("Account full name must be between 3 and 100 characters");
         }
         $this->fullname = $fullname;
         return $this;
@@ -116,7 +94,7 @@ class Account
     {
         $email = trim($email);
         if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-            throw new Exception("Invalid email format");
+            throw new Exception("Account have an invalid email format");
         }
         $this->email = $email;
         return $this;
@@ -124,6 +102,7 @@ class Account
 
     public function setCity(City $city): self
     {
+        if(!($city instanceof City)) throw new Exception("Account city must be an instance of City");
         $this->city = $city;
         return $this;
     }
@@ -131,7 +110,7 @@ class Account
     public function setRole(string $role): self
     {
         if (!in_array($role, ACCOUNT_ROLES, true))
-            throw new Exception("Invalid role");
+            throw new Exception("Account have an invalid role");
         $this->role = $role;
         return $this;
     }
@@ -140,20 +119,31 @@ class Account
     {
         $address = trim($address);
         if ($address === '')
-            throw new Exception("Profile picture address cannot be empty");
+            throw new Exception("Account profile picture address cannot be empty");
 
         $this->profile_picture_address = $address;
         return $this;
     }
 
-    public function setCurrentUserLocation(Geolocation $location): self
+
+    public function setIsSubscribing(bool $is_subscribing): self
     {
-        $this->currentUserLocation = $location;
+        $this->is_subscribing = $is_subscribing;
         return $this;
     }
     #endregion
 
-    #region DATABASE
-
+    #region UTILITIES
+    public function toArray(): array
+    {
+        return [
+            'username' => $this->username,
+            'fullname' => $this->fullname,
+            'email' => $this->email,
+            'city' => $this->city->toArray(),
+            'role' => $this->role,
+            'profile_picture_address' => $this->profile_picture_address
+        ];
+    }
     #endregion
 }
