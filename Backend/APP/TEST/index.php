@@ -1,19 +1,24 @@
 <?php
 
 use REPOSITORY\repoCity;
+use REPOSITORY\RepoAccount;
 
 require_once(__DIR__ . "/../REPOSITORY/RepoCity.php");
-use MODELS\GEOGRAPHY\City;
+require_once(__DIR__ . "/../REPOSITORY/RepoAccount.php");
 
 echo "<pre>";
-testRepoCity();
+testRepoAccount();
 echo "</pre>";
 
-#region City 
 function testRepoCity()
 {   
     $repoCity = new repoCity();
     print_r($repoCity->selectAllCitiesFromDatabase());
 }
-#endregion
+
+function testRepoAccount()
+{   
+    $repo = new repoAccount();
+    print_r($repo->login("najwa123","password"));
+}
 ?>

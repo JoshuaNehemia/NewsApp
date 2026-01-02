@@ -42,14 +42,6 @@ class DatabaseConnection
     }
     #endregion
 
-    #region GETTER
-    public function getConnection(): mysqli
-    {
-        return $this->conn;
-    }
-    #endregion
-
-
     #region BOOTSTRAP
     public function connect(): mysqli
     {

@@ -15,22 +15,20 @@ use Exception;
 class Account
 {
     #region FIELDS
-    private string $username;
-    private string $fullname;
-    private string $email;
-    private City $city;
-    private string $role;
-    private string $profile_picture_address;
-    private bool $is_subscribing;
+    protected string $username;
+    protected string $fullname;
+    protected string $email;
+    protected string $role;
+    protected string $profile_picture_address;
     #endregion
 
     #region CONSTRUCTOR
-    public function __construct(
-    ) {
+    public function __construct()
+    {
     }
     #endregion
 
-    #region GETTERS
+    #region GETTER
     public function getUsername(): string
     {
         return $this->username;
@@ -43,10 +41,6 @@ class Account
     {
         return $this->email;
     }
-    public function getCity(): City
-    {
-        return $this->city;
-    }
     public function getRole(): string
     {
         return $this->role;
@@ -55,84 +49,71 @@ class Account
     {
         return $this->profile_picture_address;
     }
-
-    public function getIsSubscribing(): bool
-    {
-        return $this->is_subscribing;
-    }
     #endregion
 
-    #region SETTERS
-    public function setUsername(string $username): self
+    #region SETTER
+    public function setUsername(string $username)
     {
         $username = trim($username);
 
-        if ($username === '')
-            throw new Exception("Account username cannot be empty");
+        if ($username === '') {
+            throw new Exception("Account Username cannot be empty");
+        }
 
-        if (!preg_match('/^[a-zA-Z0-9_]$/', $username))
-            throw new Exception("Account username must contain only letters, numbers, and underscores");
+        if (!preg_match('/^[a-zA-Z0-9_]+$/', $username)) {
+            throw new Exception("Account Username may contain letters, numbers, and underscores only");
+        }
 
-        if (strlen($username) < 6 || strlen($username) > USERNAME_MAX_LENGTH)
-            throw new Exception("Account username length must between 6 - 30 digits");
+        if (strlen($username) < 6 || strlen($username) > USERNAME_MAX_LENGTH) {
+            throw new Exception("Account Username length must be between 6 and " . USERNAME_MAX_LENGTH);
+        }
 
         $this->username = $username;
-        return $this;
     }
 
-    public function setFullname(string $fullname): self
+    public function setFullname(string $fullname)
     {
         $fullname = trim($fullname);
-        if (strlen($fullname) < 3 || strlen($fullname) > 200) {
-            throw new Exception("Account full name must be between 3 and 100 characters");
+
+        if (strlen($fullname) < 3 || strlen($fullname) > 100) {
+            throw new Exception("Account Full name must be between 3 and 100 characters");
         }
+
         $this->fullname = $fullname;
-        return $this;
     }
 
-    public function setEmail(string $email): self
+    public function setEmail(string $email)
     {
         $email = trim($email);
+
         if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-            throw new Exception("Account have an invalid email format");
+            throw new Exception("Account Invalid email format");
         }
+
         $this->email = $email;
-        return $this;
     }
 
-    public function setCity(City $city): self
+    public function setRole(string $role)
     {
-        if(!($city instanceof City)) throw new Exception("Account city must be an instance of City");
-        $this->city = $city;
-        return $this;
-    }
+        if (!in_array($role, ACCOUNT_ROLES, true)) {
+            throw new Exception("Account Invalid account role");
+        }
 
-    public function setRole(string $role): self
-    {
-        if (!in_array($role, ACCOUNT_ROLES, true))
-            throw new Exception("Account have an invalid role");
         $this->role = $role;
-        return $this;
     }
 
-    public function setProfilePictureAddress(string $address): self
+    public function setProfilePictureAddress(string $address)
     {
         $address = trim($address);
-        if ($address === '')
-            throw new Exception("Account profile picture address cannot be empty");
+
+        if ($address === '') {
+            throw new Exception("Account Profile picture address cannot be empty");
+        }
 
         $this->profile_picture_address = $address;
-        return $this;
-    }
-
-
-    public function setIsSubscribing(bool $is_subscribing): self
-    {
-        $this->is_subscribing = $is_subscribing;
-        return $this;
     }
     #endregion
-
+    
     #region UTILITIES
     public function toArray(): array
     {
@@ -140,7 +121,6 @@ class Account
             'username' => $this->username,
             'fullname' => $this->fullname,
             'email' => $this->email,
-            'city' => $this->city->toArray(),
             'role' => $this->role,
             'profile_picture_address' => $this->profile_picture_address
         ];

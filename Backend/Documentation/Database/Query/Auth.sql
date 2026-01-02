@@ -69,7 +69,7 @@ LEFT JOIN `country_divisions` cd
 LEFT JOIN `countries` cm
     ON cm.`id` = cd.`country_id`
 
-WHERE a.`username` = 'joshua123'
+WHERE a.`username` = 'najwa123'
 LIMIT 1;
 
 

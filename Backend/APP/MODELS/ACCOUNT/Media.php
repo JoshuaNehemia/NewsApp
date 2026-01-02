@@ -162,11 +162,11 @@ class Media
 
     public function setEmail(string $email): self
     {
-        if (empty($website))
+        if (empty($email))
             throw new Exception("Media email can't be empty");
-        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        if (!filter_var($email, FILTER_VALIDATE_EMAIL))
             throw new Exception("Media have an invalid email address");
-        }
+
         $this->email = $email;
         return $this;
     }

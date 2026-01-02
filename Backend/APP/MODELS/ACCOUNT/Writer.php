@@ -24,6 +24,7 @@ class Writer extends Account
     #region CONSTRUCTOR
     public function __construct(
     ) {
+        parent::__construct();
     }
     #endregion
 
@@ -45,25 +46,36 @@ class Writer extends Account
     #endregion
 
     #region SETTERS
-    public function setMedia(Media $media): self{
-        if(!($media instanceof Media)) throw new Exception ("Writer media must be instance of media");
+    public function setMedia(Media $media): self
+    {
+        if (!($media instanceof Media))
+            throw new Exception("Writer media must be instance of media");
         $this->media = $media;
         return $this;
     }
 
-    public function setBiography(string $biography): self{
+    public function setBiography(string $biography): self
+    {
         $biography = trim($biography);
+
+        if (strlen($biography) > 500) {
+            throw new Exception("Writer Biography too long");
+        }
+
+        $this->biography = $biography;
         return $this;
     }
 
-    public function setIsVerified(bool $isVerified): self{
+    public function setIsVerified(bool $isVerified): self
+    {
         $this->is_verified = $isVerified;
         return $this;
     }
     #endregion
 
     #region UTILITIES
-    public function toArray(): array{
+    public function toArray(): array
+    {
         return array_merge(parent::toArray(), [
             "media" => $this->media->toArray(),
             "biography" => $this->biography,

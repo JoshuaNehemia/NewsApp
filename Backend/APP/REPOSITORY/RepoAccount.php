@@ -7,17 +7,25 @@ require_once(__DIR__ . "/../MODELS/ACCOUNT/Account.php");
 require_once(__DIR__ . "/../MODELS/ACCOUNT/Media.php");
 require_once(__DIR__ . "/../MODELS/ACCOUNT/User.php");
 require_once(__DIR__ . "/../MODELS/ACCOUNT/Writer.php");
+require_once(__DIR__ . "/../MODELS/GEOGRAPHY/City.php");
+require_once(__DIR__ . "/../MODELS/GEOGRAPHY/CountryDivision.php");
+require_once(__DIR__ . "/../MODELS/GEOGRAPHY/Country.php");
 require_once(__DIR__ . "/../MODELS/CORE/DatabaseConnection.php");
+require_once(__DIR__ . "/../MODELS/CORE/Geolocation.php");
+require_once(__DIR__ . "/../config.php");
 #endregion
 
 #region USE
-
-use Exception;
 use MODELS\ACCOUNT\Account;
-use MODELS\ACCOUNT\uSER;
+use MODELS\ACCOUNT\User;
 use MODELS\ACCOUNT\Writer;
 use MODELS\ACCOUNT\Media;
+use MODELS\GEOGRAPHY\City;
+use MODELS\GEOGRAPHY\CountryDivision;
+use MODELS\GEOGRAPHY\Country;
 use MODELS\CORE\DatabaseConnection;
+use MODELS\CORE\Geolocation;
+use Exception;
 #endregion
 
 class RepoAccount
@@ -36,8 +44,7 @@ class RepoAccount
     #region LOGIN
     public function login(string $username, string $password)
     {
-        $sqlQuery = "
-        SELECT
+        $sqlQuery = "SELECT
             a.username,
             a.password,
             a.fullname,
@@ -118,26 +125,25 @@ class RepoAccount
             if (!$row) {
                 throw new Exception("Invalid username or password");
             }
+            //TODO: Don't forget to uncomment when signup feature is created
+            // if (!password_verify($password, $row['password'])) {
+            //     throw new Exception("Invalid username or password");
+            // }
 
-            if (!password_verify($password, $row['password'])) {
-                throw new Exception("Invalid username or password");
-            }
-
+            //TODO: Is this mean ban? (I FORGOT THIS COLUMN MEAN)
             //if (!$row['is_active']) {
-                //throw new Exception("Account is inactive");
+            //throw new Exception("Account is inactive");
             //}
 
+            //TODO: Don't forget to change query so it retrieve locked_until column
             //if ($row['locked_until'] !== null && strtotime($row['locked_until']) > time()) {
-             //   throw new Exception("Account is temporarily locked");
+            //   throw new Exception("Account is temporarily locked");
             //}
 
             $account = new Account();
-            $account->setUsername($row['username'])
-                ->setFullname($row['fullname'])
-                ->setEmail($row['email'])
-                ->setRole($row['role']);
+            $account;
 
-            if ($row['role'] === 'user') {
+            if (strtoupper($row['role']) === ACCOUNT_ROLES[0]) {
 
                 $country = null;
                 if ($row['user_country_id']) {
@@ -148,18 +154,21 @@ class RepoAccount
                         ->setTelephone($row['user_country_telephone']);
                 }
 
-                $user = (new User())
-                    ->setAccount($account)
-                    ->setBirthdate($row['user_birthdate'])
-                    ->setGender($row['user_gender'])
-                    ->setPhoneNumber($row['user_phone_number'])
-                    ->setBiography($row['user_biography'])
-                    ->setCountry($country);
+                $user = new User();
+                $user->setUsername($row['username']);
+                $user->setFullname($row['fullname']);
+                $user->setEmail($row['email']);
+                $user->setRole($row['role']);
+                $user->setBirthdate($row['user_birthdate']);
+                $user->setGender(strtoupper($row['user_gender']));
+                $user->setPhoneNumber($row['user_phone_number']);
+                $user->setBiography($row['user_biography']);
+                $user->setCountry($country);
 
                 return $user;
             }
 
-            if ($row['role'] === 'writer') {
+            if (strtoupper($row['role']) === ACCOUNT_ROLES[1]) {
 
                 $country = (new Country())
                     ->setId((int) $row['media_country_id'])
@@ -193,11 +202,14 @@ class RepoAccount
                     ->setDescription($row['media_description'])
                     ->setCity($city);
 
-                $writer = (new Writer())
-                    ->setAccount($account)
-                    ->setBiography($row['writer_biography'])
-                    ->setIsVerified((bool) $row['writer_is_verified'])
-                    ->setMedia($media);
+                $writer = new Writer();
+                $writer->setUsername($row['username']);
+                $writer->setFullname($row['fullname']);
+                $writer->setEmail($row['email']);
+                $writer->setRole($row['role']);
+                $writer->setBiography($row['writer_biography']);
+                $writer->setIsVerified((bool) $row['writer_is_verified']);
+                $writer->setMedia($media);
 
                 return $writer;
             }
@@ -205,7 +217,12 @@ class RepoAccount
             throw new Exception("Unknown account role");
 
         } finally {
-            $this->db->close();
+            if ($stmt) {
+                $stmt->close();
+            }
+            if ($connection) {
+                $connection->close();
+            }
         }
     }
 
