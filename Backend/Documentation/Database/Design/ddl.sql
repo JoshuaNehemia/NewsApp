@@ -321,7 +321,6 @@ CREATE TABLE IF NOT EXISTS `news` (
   `title` VARCHAR(255) NOT NULL,
   `slug` VARCHAR(255) NOT NULL,
   `content` LONGTEXT NOT NULL,
-  `is_published` BOOLEAN NOT NULL DEFAULT FALSE,
   `view_count` BIGINT NOT NULL DEFAULT 0,
 
   `latitude` DECIMAL(9,6) NULL,

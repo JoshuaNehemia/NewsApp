@@ -1,53 +1,50 @@
 <?php
 
-namespace MODELS;
+namespace MODELS\NEWS;
+
+#region REQUIRE
+require_once(__DIR__ . "/News.php");
+require_once(__DIR__ . "/../ACCOUNT/User.php");
+require_once(__DIR__ . "/../../config.php");
+#endregion
+
+#region USE
+use MODELS\ACCOUNT\User;
+use MODELS\NEWS\News;
+use Exception;
+#endregion
 
 class Comment
 {
     #region FIELDS
     private int $id;
-    private int $news_id;
-    private string $username;
-    private ?int $reply_to_id;
+    private News $news;
+    private User $user;
+    private ?int $reply_to_id = null;
     private string $content;
-    private string $created_at;
-    private string $updated_at;
+    private string $createdAt;
     #endregion
 
     #region CONSTRUCTOR
-    public function __construct(
-        int $id = 0,
-        int $news_id = 0,
-        string $username = '',
-        ?int $reply_to_id = null,
-        string $content = '',
-        string $created_at = '',
-        string $updated_at = ''
-    ) {
-        $this->id = $id;
-        $this->news_id = $news_id;
-        $this->username = $username;
-        $this->reply_to_id = $reply_to_id;
-        $this->content = $content;
-        $this->created_at = $created_at ?: date('Y-m-d H:i:s');
-        $this->updated_at = $updated_at ?: date('Y-m-d H:i:s');
+    public function __construct()
+    {
     }
     #endregion
 
     #region GETTERS
-    public function getId(): int
+    public function getId(): ?int
     {
         return $this->id;
     }
 
-    public function getNewsId(): int
+    public function getNews(): News
     {
-        return $this->news_id;
+        return $this->news;
     }
 
-    public function getUsername(): string
+    public function getUser(): User
     {
-        return $this->username;
+        return $this->user;
     }
 
     public function getReplyToId(): ?int
@@ -62,52 +59,86 @@ class Comment
 
     public function getCreatedAt(): string
     {
-        return $this->created_at;
-    }
-
-    public function getUpdatedAt(): string
-    {
-        return $this->updated_at;
+        return $this->createdAt;
     }
     #endregion
 
     #region SETTERS
-    public function setNewsId(int $news_id): void
+    public function setId(int $id): self
     {
-        $this->news_id = $news_id;
+        if ($id <= 0) {
+            throw new Exception("Comment has invalid comment ID");
+        }
+        $this->id = $id;
+        return $this;
     }
 
-    public function setUsername(string $username): void
+    public function setNews(News $news): self
     {
-        $this->username = $username;
+        $this->news = $news;
+        return $this;
     }
 
-    public function setReplyToId(?int $reply_to_id): void
+    public function setUser(User $user): self
     {
-        $this->reply_to_id = $reply_to_id;
+        $this->user = $user;
+        return $this;
     }
 
-    public function setContent(string $content): void
+    public function setReplyToId(?int $commentId): self
     {
+        if ($commentId !== null && $commentId <= 0) {
+            throw new Exception("Comment has invalid parent comment ID");
+        }
+
+        if ($this->id !== null && $commentId === $this->id) {
+            throw new Exception("Comment cannot reply to itself");
+        }
+
+        $this->reply_to_id = $commentId;
+        return $this;
+    }
+
+    public function setContent(string $content): self
+    {
+        $content = trim($content);
+
+        if ($content === '') {
+            throw new Exception("Comment content cannot be empty");
+        }
+
+        if (mb_strlen($content) > 2000) {
+            throw new Exception("Comment content exceeds 2000 characters");
+        }
+
         $this->content = $content;
-        $this->touch();
+        return $this;
     }
 
-    public function setUpdatedAt(string $updated_at): void
+    public function setCreatedAt(string $createdAt): self
     {
-        $this->updated_at = $updated_at;
+
+        if (!preg_match(REGEX_DATE_TIME, $createdAt)) {
+            throw new Exception("Comment has invalid datetime format. Expected YYYY-MM-DD HH:mm:SS");
+        }
+
+        $this->createdAt = $createdAt;
+        return $this;
     }
     #endregion
 
-    #region HELPERS
-    public function isReply(): bool
+    #region UTILITIES
+    public function toArray(): array
     {
-        return $this->reply_to_id !== null;
-    }
-
-    private function touch(): void
-    {
-        $this->updated_at = date('Y-m-d H:i:s');
+        return [
+            'id' => $this->id,
+            'news' => $this->news->toArray(),
+            'user' => $this->user->toArray(),
+            'reply_to_id' => $this->reply_to_id,
+            'content' => $this->content,
+            'created_at' => $this->createdAt,
+        ];
     }
     #endregion
+
 }

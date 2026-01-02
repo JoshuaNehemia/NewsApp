@@ -1,7 +1,17 @@
 <?php
 
-namespace MODELS;
+namespace MODELS\NEWS;
 
+#region REQUIRE
+require_once(__DIR__ . "/../CORE/Geolocation.php");
+require_once(__DIR__ . "/../ACCOUNT/Writer.php");
+#endregion
+
+#region USE
+use MODELS\CORE\Geolocation;
+use MODELS\ACCOUNT\Writer;
+use Exception;
+#endregion
 class News
 {
     #region FIELDS
@@ -9,34 +19,18 @@ class News
     private string $title;
     private string $slug;
     private string $content;
-    private string $thumbnail;
-    private string $status;
-    private string $author_username;
+    private array $images = [];
+    private Writer $author;
+    private Geolocation $location;
+    private string $category;
+    private int $view_count;
     private string $created_at;
     private string $updated_at;
     #endregion
 
     #region CONSTRUCTOR
-    public function __construct(
-        int $id = 0,
-        string $title = '',
-        string $slug = '',
-        string $content = '',
-        string $thumbnail = '',
-        string $status = 'draft',
-        string $author_username = '',
-        string $created_at = '',
-        string $updated_at = ''
-    ) {
-        $this->id = $id;
-        $this->title = $title;
-        $this->slug = $slug;
-        $this->content = $content;
-        $this->thumbnail = $thumbnail;
-        $this->status = $status;
-        $this->author_username = $author_username;
-        $this->created_at = $created_at ?: date('Y-m-d H:i:s');
-        $this->updated_at = $updated_at ?: date('Y-m-d H:i:s');
+    public function __construct()
+    {
     }
     #endregion
 
@@ -61,19 +55,24 @@ class News
         return $this->content;
     }
 
-    public function getThumbnail(): string
+    public function getImages(): array
     {
-        return $this->thumbnail;
+        return $this->images;
     }
 
-    public function getStatus(): string
+    public function getAuthor(): Writer
     {
-        return $this->status;
+        return $this->author;
     }
 
-    public function getAuthorUsername(): string
+    public function getLocation(): Geolocation
     {
-        return $this->author_username;
+        return $this->location;
+    }
+
+    public function getCategory(): string
+    {
+        return $this->category;
     }
 
     public function getCreatedAt(): string
@@ -85,59 +84,124 @@ class News
     {
         return $this->updated_at;
     }
+
+    public function getViewCount(): int
+    {
+        return $this->view_count;
+    }
     #endregion
 
     #region SETTERS
-    public function setTitle(string $title): void
+    public function setId(int $id): self
     {
+        if ($id <= 0) {
+            throw new Exception("Invalid news ID");
+        }
+        $this->id = $id;
+        return $this;
+    }
+
+    public function setTitle(string $title): self
+    {
+        $title = trim($title);
+
+        if ($title === '') {
+            throw new Exception("Title cannot be empty");
+        }
+
         $this->title = $title;
-        $this->touch();
+        return $this;
     }
 
-    public function setSlug(string $slug): void
+    public function setSlug(string $slug): self
     {
+        if (!preg_match('/^[a-z0-9-]+$/', $slug)) {
+            throw new Exception("Invalid slug format");
+        }
+
         $this->slug = $slug;
-        $this->touch();
+        return $this;
     }
 
-    public function setContent(string $content): void
+    public function setContent(string $content): self
     {
+        if (trim($content) === '') {
+            throw new Exception("Content cannot be empty");
+        }
+
         $this->content = $content;
-        $this->touch();
+        return $this;
     }
 
-    public function setThumbnail(string $thumbnail): void
+    public function setImages(array $images): self
     {
-        $this->thumbnail = $thumbnail;
-        $this->touch();
+        $this->images = $images;
+        return $this;
     }
 
-    public function setStatus(string $status): void
+    public function addImage(string $image): self
     {
-        $this->status = $status;
-        $this->touch();
+        $this->images[] = $image;
+        return $this;
     }
 
-    public function setAuthorUsername(string $author_username): void
+    public function setAuthor(Writer $author): self
     {
-        $this->author_username = $author_username;
+        $this->author = $author;
+        return $this;
     }
 
-    public function setUpdatedAt(string $updated_at): void
+    public function setLocation(Geolocation $location): self
+    {
+        $this->location = $location;
+        return $this;
+    }
+
+    public function setCategory(string $category): self
+    {
+        if (trim($category) === '') {
+            throw new Exception("News category cannot be empty");
+        }
+        $this->category = $category;
+        return $this;
+    }
+
+    public function setCreatedAt(string $created_at): self
+    {
+        $this->created_at = $created_at;
+        return $this;
+    }
+
+    public function setUpdatedAt(string $updated_at): self
     {
         $this->updated_at = $updated_at;
+        return $this;
+    }
+    public function setViewCount(int $view_count): self
+    {
+        if ($view_count < 0)
+            throw new Exception("News view count can't be negative");
+        $this->view_count = $view_count;
+        return $this;
     }
     #endregion
 
-    #region HELPERS
-    public function isPublished(): bool
+    #region UTILITIES
+    public function toArray(): array
     {
-        return $this->status === 'published';
-    }
-
-    private function touch(): void
-    {
-        $this->updated_at = date('Y-m-d H:i:s');
+        return [
+            'id' => $this->id,
+            'title' => $this->title,
+            'slug' => $this->slug,
+            'content' => $this->content,
+            'images' => $this->images,
+            'category' => $this->category,
+            'view_count' => $this->view_count,
+            'author' => $this->author->toArray(),
+            'location' => $this->location->toArray(),
+            'created_at' => $this->created_at,
+            'updated_at' => $this->updated_at,
+        ];
     }
     #endregion
 }
