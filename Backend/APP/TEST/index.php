@@ -1,20 +1,19 @@
 <?php
 
-require_once(__DIR__ . "/../MODELS/City.php");
-use MODELS\City;
+use REPOSITORY\repoCity;
+
+require_once(__DIR__ . "/../REPOSITORY/RepoCity.php");
+use MODELS\GEOGRAPHY\City;
 
 echo "<pre>";
-testCity();
+testRepoCity();
 echo "</pre>";
 
 #region City 
-function testCity()
-{
-    $cit = new City();
-    $arr = $cit->selectAllCitiesFromDatabase();
-    print_r($arr);
-    print_r($arr[0]->toArray());
-    //VERDICT: SUCCESFULLL
+function testRepoCity()
+{   
+    $repoCity = new repoCity();
+    print_r($repoCity->selectAllCitiesFromDatabase());
 }
 #endregion
 ?>

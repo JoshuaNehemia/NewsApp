@@ -35,7 +35,7 @@ class City
         return $this->name;
     }
 
-    public function getCountry(): CountryDivision
+    public function getCountryDivision(): CountryDivision
     {
         return $this->country_division;
     }
@@ -65,16 +65,12 @@ class City
 
     public function setCountryDivision(CountryDivision $country_division): self
     {
-        if ($country_division == null)
-            throw new Exception("City country_division can't be null");
         $this->country_division = $country_division;
         return $this;
     }
 
     public function setGeolocation(Geolocation $geolocation): self
     {
-        if ($geolocation == null)
-            throw new Exception("City geolocation can't be empty");
         $this->geolocation = $geolocation;
         return $this;
     }

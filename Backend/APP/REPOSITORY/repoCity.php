@@ -46,10 +46,10 @@ class repoCity
                         ct.id  AS ct_id,
                         ct.name AS ct_name,
                         ct.code AS ct_code,
-                        ct.telephone AS ct_telephone,
-                    FROM tcities c
-                    INNER JOIN tcountry_divisions cd ON c.country_division_id = cd.id
-                    INNER JOIN tcountries ct ON cd.country_id = ct.id";
+                        ct.telephone AS ct_telephone
+                    FROM cities c
+                    INNER JOIN country_divisions cd ON c.country_division_id = cd.id
+                    INNER JOIN countries ct ON cd.country_id = ct.id;";
         $connection = null;
         $cities = [];
         try {
@@ -66,14 +66,14 @@ class repoCity
 
             while ($row = $result->fetch_assoc()) {
 
-                $country = new Country()
-                    ->setId((int) $row["id"])
+                $country = new Country();
+                $country->setId((int) $row["ct_id"])
                     ->setName($row['ct_name'])
                     ->setCode($row['ct_code'])
                     ->setTelephone($row['ct_telephone']);
 
-                $countryDivision = new CountryDivision()
-                    ->setId((int) $row['cd_id'])
+                $countryDivision = new CountryDivision();
+                $countryDivision->setId((int) $row['cd_id'])
                     ->setName($row['cd_name'])
                     ->setCountry($country);
 
@@ -82,18 +82,153 @@ class repoCity
                     (float) $row['city_longitude']
                 );
 
-                $city = new City()
-                    ->setId((int) $row['city_id'])
+                $city = new City();
+                $city->setId((int) $row['city_id'])
                     ->setName($row['city_name'])
-                    ->setGeolocation($geolocation);
-                    
+                    ->setGeolocation($geolocation)
+                    ->setCountryDivision($countryDivision);
+
+
                 $cities[] = $city;
             }
             $stmt->close();
         } catch (Exception $e) {
             throw $e;
         } finally {
-            $connection->close();
+            $this->db->close();
+        }
+        return $cities;
+    }
+
+    public function selectAllCitiesByCountryDivisionId(int $country_division_id): array
+    {
+        $sqlQuery = "SELECT 
+                        c.id   AS city_id, 
+                        c.name AS city_name, 
+                        c.latitude  AS city_latitude, 
+                        c.longitude AS city_longitude,
+                        cd.id  AS cd_id,
+                        cd.name AS cd_name,
+                        ct.id  AS ct_id,
+                        ct.name AS ct_name,
+                        ct.code AS ct_code,
+                        ct.telephone AS ct_telephone
+                    FROM cities c
+                    INNER JOIN country_divisions cd ON c.country_division_id = cd.id
+                    INNER JOIN countries ct ON cd.country_id = ct.id
+                    WHERE cd.id = ?;";
+        $connection = null;
+        $cities = [];
+        try {
+
+            $connection = $this->db->connect();
+            $stmt = $connection->prepare($sqlQuery);
+
+            if (!$stmt) {
+                throw new Exception($connection->error);
+            }
+            $stmt->bind_param("i", $country_division_id);
+            $stmt->execute();
+            $result = $stmt->get_result();
+
+            while ($row = $result->fetch_assoc()) {
+
+                $country = new Country();
+                $country->setId((int) $row["ct_id"])
+                    ->setName($row['ct_name'])
+                    ->setCode($row['ct_code'])
+                    ->setTelephone($row['ct_telephone']);
+
+                $countryDivision = new CountryDivision();
+                $countryDivision->setId((int) $row['cd_id'])
+                    ->setName($row['cd_name'])
+                    ->setCountry($country);
+
+                $geolocation = new Geolocation(
+                    (float) $row['city_latitude'],
+                    (float) $row['city_longitude']
+                );
+
+                $city = new City();
+                $city->setId((int) $row['city_id'])
+                    ->setName($row['city_name'])
+                    ->setGeolocation($geolocation)
+                    ->setCountryDivision($countryDivision);
+
+
+                $cities[] = $city;
+            }
+            $stmt->close();
+        } catch (Exception $e) {
+            throw $e;
+        } finally {
+            $this->db->close();
+        }
+        return $cities;
+    }
+
+    public function selectAllCitiesByCountryId(int $country_id): array
+    {
+        $sqlQuery = "SELECT 
+                        c.id   AS city_id, 
+                        c.name AS city_name, 
+                        c.latitude  AS city_latitude, 
+                        c.longitude AS city_longitude,
+                        cd.id  AS cd_id,
+                        cd.name AS cd_name,
+                        ct.id  AS ct_id,
+                        ct.name AS ct_name,
+                        ct.code AS ct_code,
+                        ct.telephone AS ct_telephone
+                    FROM cities c
+                    INNER JOIN country_divisions cd ON c.country_division_id = cd.id
+                    INNER JOIN countries ct ON cd.country_id = ct.id
+                    WHERE ct.id = ?;";
+        $connection = null;
+        $cities = [];
+        try {
+
+            $connection = $this->db->connect();
+            $stmt = $connection->prepare($sqlQuery);
+
+            if (!$stmt) {
+                throw new Exception($connection->error);
+            }
+            $stmt->bind_param("i", $country_id);
+            $stmt->execute();
+            $result = $stmt->get_result();
+
+            while ($row = $result->fetch_assoc()) {
+
+                $country = new Country();
+                $country->setId((int) $row["ct_id"])
+                    ->setName($row['ct_name'])
+                    ->setCode($row['ct_code'])
+                    ->setTelephone($row['ct_telephone']);
+
+                $countryDivision = new CountryDivision();
+                $countryDivision->setId((int) $row['cd_id'])
+                    ->setName($row['cd_name'])
+                    ->setCountry($country);
+
+                $geolocation = new Geolocation(
+                    (float) $row['city_latitude'],
+                    (float) $row['city_longitude']
+                );
+
+                $city = new City();
+                $city->setId((int) $row['city_id'])
+                    ->setName($row['city_name'])
+                    ->setGeolocation($geolocation)
+                    ->setCountryDivision($countryDivision);
+
+                $cities[] = $city;
+            }
+            $stmt->close();
+        } catch (Exception $e) {
+            throw $e;
+        } finally {
+            $this->db->close();
         }
         return $cities;
     }

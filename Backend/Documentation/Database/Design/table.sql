@@ -104,7 +104,6 @@ CREATE TABLE IF NOT EXISTS `accounts` (
   `password` VARCHAR(255) NOT NULL COMMENT 'Hashed password',
   `fullname` VARCHAR(200) NOT NULL,
   `email` VARCHAR(255) NOT NULL,
-  `city_id` BIGINT NOT NULL,
   `role` ENUM('user','writer','admin') NOT NULL DEFAULT 'user',
   `profile_picture_ext` VARCHAR(4),
 
@@ -133,25 +132,41 @@ CREATE TABLE IF NOT EXISTS `accounts` (
 ENGINE=InnoDB
 COMMENT='Account table';
 
--- 6. Users (Readers)
+-- 6. Users 
 CREATE TABLE IF NOT EXISTS `users` (
   `username` VARCHAR(45) NOT NULL,
+
   `birthdate` DATE NULL COMMENT 'yyyy-mm-dd',
   `gender` ENUM('male','female') NULL,
-  `phone_number` VARCHAR(20) NULL,
+
+  `country_id` BIGINT NULL COMMENT 'Country of phone number',
+  `phone_number` VARCHAR(20) NULL COMMENT 'Local phone number without country code',
+
   `biography` TEXT NULL,
 
-  `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  `updated_at` TIMESTAMP 
+    DEFAULT CURRENT_TIMESTAMP 
+    ON UPDATE CURRENT_TIMESTAMP,
 
   PRIMARY KEY (`username`),
+
   CONSTRAINT `fk_users_account`
     FOREIGN KEY (`username`)
     REFERENCES `accounts` (`username`)
     ON DELETE CASCADE
-    ON UPDATE CASCADE
+    ON UPDATE CASCADE,
+
+  CONSTRAINT `fk_users_country`
+    FOREIGN KEY (`country_id`)
+    REFERENCES `countries` (`id`)
+    ON DELETE RESTRICT
+    ON UPDATE CASCADE,
+
+  INDEX `idx_users_country` (`country_id`)
 ) 
 ENGINE=InnoDB
 COMMENT='Extended profile details for standard readers';
+
 
 -- 7. Writers
 CREATE TABLE IF NOT EXISTS `writers` (

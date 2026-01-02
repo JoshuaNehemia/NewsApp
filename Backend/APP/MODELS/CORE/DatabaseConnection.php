@@ -3,7 +3,7 @@
 namespace MODELS\CORE;
 
 #region REQUIRE
-require_once(__DIR__ . "/../database.php");
+require_once(__DIR__ . "/../../database.php");
 #endregion
 
 #region USE
@@ -27,7 +27,7 @@ class DatabaseConnection
     private string $dtabase_schema = DATABASE_SCHEMA;
     private string $database_username = DATABASE_USERNAME;
     private string $database_password = DATABASE_PASSWORD;
-    protected ?mysqli $conn;
+    protected ?mysqli $conn = null;
     #endregion
 
     #region CONSTRUCTOR
@@ -51,9 +51,9 @@ class DatabaseConnection
 
 
     #region BOOTSTRAP
-    public function connect()
+    public function connect(): mysqli
     {
-        if ($this->conn == null) {
+        if ($this->conn === null) {
             $this->conn = new mysqli(
                 $this->database_address,
                 $this->database_username,
