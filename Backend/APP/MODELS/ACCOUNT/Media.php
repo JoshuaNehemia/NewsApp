@@ -4,6 +4,7 @@ namespace MODELS\ACCOUNT;
 
 #region REQUIRE
 require_once(__DIR__ . "/../GEOGRAPHY/City.php");
+require_once(__DIR__ . "/../../config.php");
 #endregion
 
 #region USE
@@ -130,9 +131,11 @@ class Media
 
     public function setType(string $type): self
     {
-        if ($type === '') {
+        $type = strtoupper($type);
+        if ($type === '')
             throw new Exception("Media type cannot be empty");
-        }
+        if (!(in_array($type, MEDIA_TYPE)))
+            throw new Exception("Media type is illegal");
         $this->type = $type;
         return $this;
     }
@@ -200,6 +203,15 @@ class Media
             'description' => $this->description,
             'city' => $this->city->toArray()
         ];
+    }
+
+    public function createLogoAddressFromExt($ext)
+    {
+        $this->logo_address = IMAGE_DATABASE_ADDRESS ."MEDIA/" ."LOGO/" .$this->getSlug() .$ext;
+    }
+    public function createPictureAddressFromExt($ext)
+    {
+        $this->picture_address = IMAGE_DATABASE_ADDRESS ."MEDIA/" ."PICTURE/" .$this->getSlug() .$ext;
     }
     #endregion
 }

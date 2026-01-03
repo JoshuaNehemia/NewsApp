@@ -70,7 +70,7 @@ CREATE TABLE IF NOT EXISTS `medias` (
   `name` VARCHAR(100) NOT NULL,
   `slug` VARCHAR(150) NOT NULL,
   `company_name` VARCHAR(100) NOT NULL,
-  `media_type` ENUM('news','journal','blog','tv','radio','publisher') NOT NULL,
+  `media_type` ENUM('NEWS','JOURNAL','BLOG','TV','RADIO','PUBLISHER') NOT NULL,
   `picture_ext` VARCHAR(4) NOT NULL,
   `logo_ext` VARCHAR(4) NOT NULL,
   `website` VARCHAR(255) NOT NULL,
@@ -104,7 +104,7 @@ CREATE TABLE IF NOT EXISTS `accounts` (
   `password` VARCHAR(255) NOT NULL COMMENT 'Hashed password',
   `fullname` VARCHAR(200) NOT NULL,
   `email` VARCHAR(255) NOT NULL,
-  `role` ENUM('user','writer','admin') NOT NULL DEFAULT 'user',
+  `role` ENUM('USER','WRITER','ADMIN') NOT NULL DEFAULT 'USER',
   `profile_picture_ext` VARCHAR(4),
 
   `is_active` BOOLEAN NOT NULL DEFAULT TRUE,
@@ -137,7 +137,7 @@ CREATE TABLE IF NOT EXISTS `users` (
   `username` VARCHAR(45) NOT NULL,
 
   `birthdate` DATE NULL COMMENT 'yyyy-mm-dd',
-  `gender` ENUM('male','female') NULL,
+  `gender` ENUM('MALE','FEMALE') NULL,
 
   `country_id` BIGINT NULL COMMENT 'Country of phone number',
   `phone_number` VARCHAR(20) NULL COMMENT 'Local phone number without country code',
@@ -311,7 +311,7 @@ CREATE TABLE IF NOT EXISTS `subscriptions` (
   `paid_at` DATETIME NOT NULL,
   `start_date` DATE NOT NULL,
   `end_date` DATE NOT NULL,
-  `status` ENUM('active', 'expired', 'cancelled') NOT NULL DEFAULT 'active',
+  `status` ENUM('ACTIVE', 'EXPIRED', 'CANCELLED') NOT NULL DEFAULT 'active',
   `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   
@@ -331,15 +331,13 @@ COMMENT = 'Records of user payments and subscription validity';
 CREATE TABLE IF NOT EXISTS `news` (
   `id` BIGINT NOT NULL AUTO_INCREMENT,
   `writer_username` VARCHAR(45) NOT NULL,
+  `media_id` BIGINT NULL,
   `category_id` BIGINT NOT NULL,
   `city_id` BIGINT NOT NULL,
   `title` VARCHAR(255) NOT NULL,
   `slug` VARCHAR(255) NOT NULL,
   `content` LONGTEXT NOT NULL,
   `view_count` BIGINT NOT NULL DEFAULT 0,
-
-  `latitude` DECIMAL(9,6) NULL,
-  `longitude` DECIMAL(9,6) NULL,
 
   `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -351,6 +349,12 @@ CREATE TABLE IF NOT EXISTS `news` (
     FOREIGN KEY (`writer_username`)
     REFERENCES `writers` (`username`)
     ON DELETE RESTRICT
+    ON UPDATE CASCADE,
+
+  CONSTRAINT `fk_news_media`
+    FOREIGN KEY (`media_id`)
+    REFERENCES `medias` (`id`)
+    ON DELETE SET NULL
     ON UPDATE CASCADE,
 
   CONSTRAINT `fk_news_category`
@@ -366,11 +370,13 @@ CREATE TABLE IF NOT EXISTS `news` (
     ON UPDATE CASCADE,
 
   INDEX `idx_news_writer` (`writer_username`),
+  INDEX `idx_news_media` (`media_id`),
   INDEX `idx_news_category` (`category_id`),
   INDEX `idx_news_city` (`city_id`)
 )
 ENGINE=InnoDB
 COMMENT='Published news articles';
+
 
 -- 15. Likes
 CREATE TABLE IF NOT EXISTS `likes` (
@@ -511,9 +517,9 @@ CREATE TABLE IF NOT EXISTS `reports` (
   `id` BIGINT NOT NULL AUTO_INCREMENT,
   `reporter_username` VARCHAR(45) NOT NULL,
   `comment_id` BIGINT NOT NULL,
-  `reason` ENUM('Spam', 'Harassment', 'Misinformation', 'Other') NOT NULL,
+  `reason` ENUM('SPAM', 'HARASSMENT', 'MISINFORMATION', 'OTHER') NOT NULL,
   `description` TEXT NULL,
-  `status` ENUM('pending', 'reviewed', 'dismissed') DEFAULT 'pending',
+  `status` ENUM('PENDING', 'REVIEWED', 'DISMISSED') DEFAULT 'PENDING',
   `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   
   PRIMARY KEY (`id`),

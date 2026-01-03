@@ -5,219 +5,304 @@ namespace REPOSITORY;
 #region REQUIRE
 require_once(__DIR__ . "/../MODELS/NEWS/News.php");
 require_once(__DIR__ . "/../MODELS/ACCOUNT/Writer.php");
-require_once(__DIR__ . "/../MODELS/CORE/Geolocation.php");
+require_once(__DIR__ . "/../MODELS/ACCOUNT/Media.php");
+require_once(__DIR__ . "/../MODELS/GEOGRAPHY/City.php");
+require_once(__DIR__ . "/../MODELS/GEOGRAPHY/Country.php");
+require_once(__DIR__ . "/../MODELS/GEOGRAPHY/CountryDivision.php");
 require_once(__DIR__ . "/../MODELS/CORE/DatabaseConnection.php");
 #endregion
 
 #region USE
 use MODELS\NEWS\News;
 use MODELS\ACCOUNT\Writer;
-use MODELS\CORE\Geolocation;
+use MODELS\ACCOUNT\Media;
+use MODELS\GEOGRAPHY\City;
+use MODELS\GEOGRAPHY\Country;
+use MODELS\GEOGRAPHY\CountryDivision;
 use MODELS\CORE\DatabaseConnection;
 use Exception;
 #endregion
 
 class RepoNews extends DatabaseConnection
 {
+    #region FIELDS
+    public DatabaseConnection $db;
+    #endregion
+
+    #region CONSTRUCT
+    public function __construct()
+    {
+        $this->db = new DatabaseConnection();
+    }
+    #endregion
     #region RETRIEVE
 
-    public function findById(int $id): ?News
+    public function findNewsById(int $id): ?News
     {
-        $sql = "
-            SELECT *
-            FROM news
-            WHERE id = ?
-            LIMIT 1
+        $sql = "SELECT
+                    n.`id` AS 'news_id',
+                    n.`title` AS 'news_title',
+                    n.`slug` AS 'news_slug',
+                    n.`content` AS 'news_content',
+                    n.`view_count` AS 'news_views',
+                    ctg.`id` AS 'category_id',
+                    ctg.`name` AS 'category_name',
+                    ct.`id` AS 'city_id',
+                    ct.`name` AS 'city_name',
+                    cd.`name` AS 'country_division_name',
+                    cm.`name` AS 'country_name',
+                    m.`id` AS 'media_id',
+                    m.`name` AS 'media_name',
+                    m.`slug` AS 'media_slug',
+                    m.`logo_ext` AS 'media_logo_ext',
+                    w.`username` AS 'writer_username',
+                    a.`fullname` AS 'writer_fullname'
+                FROM
+                    news n
+                    INNER JOIN `categories` ctg ON n.`category_id` = ctg.`id`
+                    LEFT JOIN `cities` ct ON n.`city_id` = ct.`id`
+                    LEFT JOIN `country_divisions` cd ON ct.`country_division_id` = cd.`id`
+                    LEFT JOIN `countries` cm ON cd.`country_id` = cm.`id`
+                    LEFT JOIN `medias` m ON n.`media_id` = m.`id`
+                    LEFT JOIN `writers` w ON n.`writer_username` = w.`username`
+                    INNER JOIN `accounts` a ON w.`username` = a.`username`
+                WHERE n.`id` = ?;
         ";
+        $connection = null;
+        $stmt = null;
+        try {
+            $connection = $this->db->connect();
+            $stmt = $connection->prepare($sql);
+            if (!$stmt) {
+                throw new Exception("Failed to prepare findNewsById query");
+            }
 
-        $stmt = $this->getConnection()->prepare($sql);
-        if (!$stmt) {
-            throw new Exception("Failed to prepare findById query");
+            $stmt->bind_param("i", $id);
+            $stmt->execute();
+
+            $result = $stmt->get_result();
+            $row = $result->fetch_assoc();
+            $news = $this->mapSQLResultToNewsObject($row);
+            return $news;
+        } catch (Exception $e) {
+            throw $e;
+        } finally {
+            if ($stmt) {
+                $stmt->close();
+            }
+            if ($connection) {
+                $connection->close();
+            }
         }
-
-        $stmt->bind_param("i", $id);
-        $stmt->execute();
-
-        $result = $stmt->get_result();
-        $row = $result->fetch_assoc();
-
-        return $row ? $this->mapRowToNews($row) : null;
     }
-
-    public function findAll(int $limit = 10, int $offset = 0): array
-    {
-        $sql = "
-            SELECT *
-            FROM news
-            ORDER BY created_at DESC
-            LIMIT ? OFFSET ?
-        ";
-
-        $stmt = $this->getConnection()->prepare($sql);
-        if (!$stmt) {
-            throw new Exception("Failed to prepare findAll query");
-        }
-
-        $stmt->bind_param("ii", $limit, $offset);
-        $stmt->execute();
-
-        $result = $stmt->get_result();
-        $newsList = [];
-
-        while ($row = $result->fetch_assoc()) {
-            $newsList[] = $this->mapRowToNews($row);
-        }
-
-        return $newsList;
-    }
-
     #endregion
 
     #region CREATE
-
-    public function create(News $news): int
+    public function CreateNews(News $news): bool
     {
-        $sql = "
-            INSERT INTO news
-            (
-                writer_username,
-                category_id,
-                city_id,
-                title,
-                slug,
-                content,
-                view_count,
-                latitude,
-                longitude
-            )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-        ";
+        $sql = "INSERT INTO `news` (
+                    `writer_username`,
+                    `media_id`,
+                    `category_id`,
+                    `city_id`,
+                    `title`,
+                    `slug`,
+                    `content`
+                )
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+            ";
+        $connection = null;
+        $stmt = null;
 
-        $geo = $news->getLocation();
+        try {
+            $connection = $this->db->connect();
 
-        $stmt = $this->getConnection()->prepare($sql);
-        if (!$stmt) {
-            throw new Exception("Failed to prepare create news query");
+            $stmt = $connection->prepare($sql);
+            if (!$stmt) {
+                throw new Exception(
+                    "Failed to prepare createNews query: " . $connection->error
+                );
+            }
+
+            $arr_news = $news->toArray();
+
+            $mediaId = $arr_news['media']['id'] ?? null;
+
+            $stmt->bind_param(
+                "siiisss",
+                $arr_news['author']['username'],
+                $mediaId,
+                $arr_news['category']['id'],
+                $arr_news['city']['id'],
+                $arr_news['title'],
+                $arr_news['slug'],
+                $arr_news['content']
+            );
+
+            $stmt->execute();
+
+            if ($stmt->affected_rows !== 1) {
+                return false;
+            }
+
+            return true;
+
+        } catch (Exception $e) {
+            throw $e;
+        } finally {
+            if ($stmt) {
+                $stmt->close();
+            }
+            if ($connection) {
+                $connection->close();
+            }
         }
-
-        $stmt->bind_param(
-            "siisssidd",
-            $news->getAuthor()->getUsername(),
-            $news->getCategoryId(),
-            $news->getCityId(),
-            $news->getTitle(),
-            $news->getSlug(),
-            $news->getContent(),
-            $news->getViewCount(),
-            $geo?->getLatitude(),
-            $geo?->getLongitude()
-        );
-
-        if (!$stmt->execute()) {
-            throw new Exception("Failed to create news: " . $stmt->error);
-        }
-
-        return $stmt->insert_id;
     }
 
     #endregion
 
     #region UPDATE
-
-    public function update(News $news): bool
+    public function updateNews(News $news): bool
     {
-        $sql = "
-            UPDATE news SET
-                category_id = ?,
-                city_id = ?,
-                title = ?,
-                slug = ?,
-                content = ?,
-                latitude = ?,
-                longitude = ?
-            WHERE id = ?
-        ";
+        $sql = "UPDATE `news`
+                SET
+                    `writer_username` = ?,
+                    `media_id` = ?,
+                    `category_id` = ?,
+                    `city_id` = ?,
+                    `title` = ?,
+                    `slug` = ?,
+                    `content` = ?
+                WHERE `id` = ?
+            ";
+        $connection = null;
+        $stmt = null;
 
-        $geo = $news->getLocation();
+        try {
+            $connection = $this->db->connect();
 
-        $stmt = $this->getConnection()->prepare($sql);
-        if (!$stmt) {
-            throw new Exception("Failed to prepare update query");
+            $stmt = $connection->prepare($sql);
+            if (!$stmt) {
+                throw new Exception(
+                    "Failed to prepare createNews query: " . $connection->error
+                );
+            }
+
+            $arr_news = $news->toArray();
+
+            $mediaId = $arr_news['media']['id'] ?? null;
+
+            $stmt->bind_param(
+                "siiisssi",
+                $arr_news['author']['username'],
+                $mediaId,
+                $arr_news['category']['id'],
+                $arr_news['city']['id'],
+                $arr_news['title'],
+                $arr_news['slug'],
+                $arr_news['content'],
+                $arr_news['id']
+            );
+
+            $stmt->execute();
+
+            if ($stmt->affected_rows !== 1) {
+                return false;
+            }
+
+            return true;
+
+        } catch (Exception $e) {
+            throw $e;
+        } finally {
+            if ($stmt) {
+                $stmt->close();
+            }
+            if ($connection) {
+                $connection->close();
+            }
         }
-
-        $stmt->bind_param(
-            "iissdddi",
-            $news->getCategoryId(),
-            $news->getCityId(),
-            $news->getTitle(),
-            $news->getSlug(),
-            $news->getContent(),
-            $geo?->getLatitude(),
-            $geo?->getLongitude(),
-            $news->getId()
-        );
-
-        return $stmt->execute();
     }
-
-    public function incrementViewCount(int $newsId): bool
-    {
-        $sql = "UPDATE news SET view_count = view_count + 1 WHERE id = ?";
-
-        $stmt = $this->getConnection()->prepare($sql);
-        $stmt->bind_param("i", $newsId);
-
-        return $stmt->execute();
-    }
-
     #endregion
 
     #region DELETE
-
-    public function delete(int $id): bool
+    public function deleteNews(int $news_id): bool
     {
-        $sql = "DELETE FROM news WHERE id = ?";
+        $sql = "DELETE FROM `news`
+                    WHERE `id` = ?
+                ";
 
-        $stmt = $this->getConnection()->prepare($sql);
-        $stmt->bind_param("i", $id);
+        $connection = null;
+        $stmt = null;
 
-        return $stmt->execute();
+        try {
+            $connection = $this->db->connect();
+
+            $stmt = $connection->prepare($sql);
+            if (!$stmt) {
+                throw new Exception(
+                    "Failed to prepare createNews query: " . $connection->error
+                );
+            }
+            $stmt->bind_param(
+                "i", $news_id
+            );
+            $stmt->execute();
+            if ($stmt->affected_rows !== 1) {
+                return false;
+            }
+            return true;
+
+        } catch (Exception $e) {
+            throw $e;
+        } finally {
+            if ($stmt) {
+                $stmt->close();
+            }
+            if ($connection) {
+                $connection->close();
+            }
+        }
     }
 
     #endregion
 
     #region MAPPER
 
-    private function mapRowToNews(array $row): News
+    private function mapSQLResultToNewsObject(array $row): News
     {
         $news = new News();
-
-        $news
-            ->setId((int) $row['id'])
-            ->setTitle($row['title'])
-            ->setSlug($row['slug'])
-            ->setContent($row['content'])
-            ->setViewCount((int) $row['view_count'])
-            ->setCategoryId((int) $row['category_id'])
-            ->setCityId((int) $row['city_id'])
-            ->setCreatedAt($row['created_at'])
-            ->setUpdatedAt($row['updated_at']);
-
-        if ($row['latitude'] !== null && $row['longitude'] !== null) {
-            $news->setLocation(
-                new Geolocation(
-                    (float) $row['latitude'],
-                    (float) $row['longitude']
-                )
-            );
-        }
-
+        $city = new City();
+        $country = new Country();
+        $country_division = new CountryDivision();
+        $media = new Media();
         $writer = new Writer();
+        $country->setName($row['country_name']);
+        $country_division->setName($row['country_division_name']);
+        $country_division->setCountry($country);
+        $city->setId($row["city_id"]);
+        $city->setName($row["city_name"]);
+        $city->setCountryDivision($country_division);
         $writer->setUsername($row['writer_username']);
+        $writer->setFullname($row['writer_fullname']);
+        $media->setId($row['media_id']);
+        $media->setName($row['media_name']);
+        $media->setSlug($row['media_slug']);
+        $media->createLogoAddressFromExt($row['media_logo_ext']);
+        $news->setId($row['news_id']);
+        $news->setTitle($row['news_title']);
+        $news->setSlug($row['news_slug']);
+        $news->setContent($row['news_content']);
+        $news->setViewCount($row['news_views']);
+        $news->setCity($city);
         $news->setAuthor($writer);
-
         return $news;
     }
 
+    private function mapSQLResultToNewsThumbnail(array $row): News
+    {
+        $news = new News();
+        return $news;
+    }
     #endregion
 }

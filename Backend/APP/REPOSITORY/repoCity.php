@@ -34,7 +34,7 @@ class repoCity
     #endregion
 
     #region SELECT
-    public function selectAllCitiesFromDatabase(): array
+    public function findAllCitiesFromDatabase(): array
     {
         $sqlQuery = "SELECT 
                         c.id   AS city_id, 
@@ -100,7 +100,7 @@ class repoCity
         return $cities;
     }
 
-    public function selectAllCitiesByCountryDivisionId(int $country_division_id): array
+    public function findAllCitiesByCountryDivisionId(int $country_division_id): array
     {
         $sqlQuery = "SELECT 
                         c.id   AS city_id, 
@@ -167,7 +167,7 @@ class repoCity
         return $cities;
     }
 
-    public function selectAllCitiesByCountryId(int $country_id): array
+    public function findAllCitiesByCountryId(int $country_id): array
     {
         $sqlQuery = "SELECT 
                         c.id   AS city_id, 

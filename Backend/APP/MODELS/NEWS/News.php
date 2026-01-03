@@ -3,13 +3,15 @@
 namespace MODELS\NEWS;
 
 #region REQUIRE
-require_once(__DIR__ . "/../CORE/Geolocation.php");
+require_once(__DIR__ . "/../GEOGRAPHY/City.php");
 require_once(__DIR__ . "/../ACCOUNT/Writer.php");
+require_once(__DIR__ . "/../ACCOUNT/Media.php");
 #endregion
 
 #region USE
-use MODELS\CORE\Geolocation;
+use MODELS\GEOGRAPHY\City;
 use MODELS\ACCOUNT\Writer;
+use MODELS\ACCOUNT\Media;
 use Exception;
 #endregion
 
@@ -22,7 +24,8 @@ class News
     private string $content;
     private array $images = [];
     private Writer $author;
-    private ?Geolocation $location = null;
+    private Media $media;
+    private City $city;
     private string $category;
 
     private int $view_count = 0;
@@ -31,15 +34,11 @@ class News
     private array $tags = [];
     private float $rating = 0.0;
 
-    private string $created_at;
-    private string $updated_at;
     #endregion
 
     #region CONSTRUCTOR
     public function __construct()
     {
-        $this->created_at = date('Y-m-d H:i:s');
-        $this->updated_at = date('Y-m-d H:i:s');
     }
     #endregion
 
@@ -74,9 +73,9 @@ class News
         return $this->author;
     }
 
-    public function getLocation(): ?Geolocation
+    public function getCIty(): City
     {
-        return $this->location;
+        return $this->city;
     }
 
     public function getCategory(): string
@@ -104,14 +103,8 @@ class News
         return $this->rating;
     }
 
-    public function getCreatedAt(): string
-    {
-        return $this->created_at;
-    }
-
-    public function getUpdatedAt(): string
-    {
-        return $this->updated_at;
+    public function getMedia():Media{
+        return $this->media;
     }
     #endregion
 
@@ -174,9 +167,9 @@ class News
         return $this;
     }
 
-    public function setLocation(?Geolocation $location): self
+    public function setCity(City $city): self
     {
-        $this->location = $location;
+        $this->city = $city;
         return $this;
     }
 
@@ -235,6 +228,11 @@ class News
         $this->rating = $rating;
         return $this;
     }
+
+    public function setMedia(Media $media):self{
+        $this->media = $media;
+        return $this;
+    }
     #endregion
 
     #region UTILITIES
@@ -252,9 +250,7 @@ class News
             'rating' => $this->rating,
             'tags' => $this->tags,
             'author' => $this->author->toArray(),
-            'location' => $this->location?->toArray(),
-            'created_at' => $this->created_at,
-            'updated_at' => $this->updated_at,
+            'city' => $this->city->toArray()
         ];
     }
     #endregion
