@@ -187,7 +187,7 @@ class RepoAccount
     }
     #endregion
     #region CREATE USER
-    public function createUser(User $user, string $hashedPassword): void
+    public function createUser(User $user, string $hashedPassword): bool
     {
         $conn = $this->db->connect();
         $stmt = null;
@@ -231,18 +231,22 @@ class RepoAccount
                 throw new Exception("Failed to create user profile: {$stmt->error}");
             }
             $conn->commit();
-
+            return $stmt->affected_rows > 0;
         } catch (Exception $e) {
             $conn->rollback();
             throw $e;
         } finally {
-            $stmt?->close();
-            $conn->close();
+            if ($stmt) {
+                $stmt->close();
+            }
+            if ($conn) {
+                $conn->close();
+            }
         }
     }
     #endregion
     #region CREATE WRITER
-    public function createWriter(Writer $writer, string $hashedPassword): void
+    public function createWriter(Writer $writer, string $hashedPassword): bool
     {
         $conn = $this->db->connect();
         $stmt = null;
@@ -283,12 +287,17 @@ class RepoAccount
             }
 
             $conn->commit();
+            return $stmt->affected_rows > 0;
         } catch (Exception $e) {
             $conn->rollback();
             throw $e;
         } finally {
-            $stmt?->close();
-            $conn->close();
+            if ($stmt) {
+                $stmt->close();
+            }
+            if ($conn) {
+                $conn->close();
+            }
         }
     }
     #endregion

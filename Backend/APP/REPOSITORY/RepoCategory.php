@@ -27,10 +27,8 @@ class RepoCategory
     public function createCategory(string $name): bool
     {
         $name = trim($name);
-        $sql = "
-            INSERT IGNORE INTO categories (name)
-            VALUES (?)
-        ";
+        $sql = "INSERT IGNORE INTO categories (name)
+            VALUES (?)";
         try {
             $conn = $this->db->connect();
             $stmt = $conn->prepare($sql);
@@ -48,145 +46,157 @@ class RepoCategory
         } catch (Exception $e) {
             throw $e;
         } finally {
-            $stmt?->close();
-            $conn->close();
+            if ($stmt) {
+                $stmt->close();
+            }
+            if ($conn) {
+                $conn->close();
+            }
         }
     }
     #endregion
 
     #region RETRIEVE
-
-    /**
-     * Get category by id
-     */
-    public function findById(int $id): ?array
+    public function findCategoryById(int $id): string
     {
-        $sql = "
-            SELECT *
+        $sql = "SELECT `name`
             FROM categories
             WHERE id = ?
-            LIMIT 1
-        ";
+            LIMIT 1";
+        try {
+            $conn = $this->db->connect();
+            $stmt = $conn->prepare($sql);
 
-        $conn = $this->db->connect();
-        $stmt = $conn->prepare($sql);
+            $stmt->bind_param("i", $id);
+            $stmt->execute();
 
-        $stmt->bind_param("i", $id);
-        $stmt->execute();
-
-        $result = $stmt->get_result();
-        return $result->fetch_assoc() ?: null;
+            $result = $stmt->get_result();
+            return $result->fetch_assoc()['name'];
+        } catch (Exception $e) {
+            throw $e;
+        } finally {
+            if ($stmt) {
+                $stmt->close();
+            }
+            if ($conn) {
+                $conn->close();
+            }
+        }
     }
-
-    /**
-     * Get category by name
-     */
-    public function findByName(string $name): ?array
+    public function findCategoryByName(string $name): string
     {
-        $sql = "
-            SELECT *
+        $sql = "SELECT `name`
             FROM categories
             WHERE name = ?
-            LIMIT 1
-        ";
+            LIMIT 1";
+        try {
+            $conn = $this->db->connect();
+            $stmt = $conn->prepare($sql);
 
-        $conn = $this->db->connect();
-        $stmt = $conn->prepare($sql);
+            $stmt->bind_param("s", $name);
+            $stmt->execute();
 
-        $stmt->bind_param("s", $name);
-        $stmt->execute();
-
-        $result = $stmt->get_result();
-        return $result->fetch_assoc() ?: null;
+            $result = $stmt->get_result();
+            return $result->fetch_assoc()['name'];
+        } catch (Exception $e) {
+            throw $e;
+        } finally {
+            if ($stmt) {
+                $stmt->close();
+            }
+            if ($conn) {
+                $conn->close();
+            }
+        }
     }
 
-    public function findAll(): array
+    public function findCategory(): array
     {
-        $sql = "
-            SELECT *
+        $sql = "SELECT `name`
             FROM categories
-            ORDER BY name ASC
-        ";
+            ORDER BY ASC;";
+        try {
+            $conn = $this->db->connect();
+            $stmt = $conn->prepare($sql);
+            $stmt->execute();
 
-        $conn = $this->db->connect();
-        $stmt = $conn->prepare($sql);
-        $stmt->execute();
-
-        return $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+            $result = $stmt->get_result();
+            return $result->fetch_assoc()['name'];
+        } catch (Exception $e) {
+            throw $e;
+        } finally {
+            if ($stmt) {
+                $stmt->close();
+            }
+            if ($conn) {
+                $conn->close();
+            }
+        }
     }
-
-    public function findAllNames(): array
-    {
-        $sql = "
-            SELECT name
-            FROM categories
-            ORDER BY name ASC
-        ";
-
-        $conn = $this->db->connect();
-        $stmt = $conn->prepare($sql);
-        $stmt->execute();
-
-        return array_column(
-            $stmt->get_result()->fetch_all(MYSQLI_ASSOC),
-            'name'
-        );
-    }
-
     #endregion
 
     #region UPDATE
-    public function updateName(int $id, string $newName): bool
+    public function updateCategoryWithId(int $id, string $newName): bool
     {
         $newName = trim($newName);
-
         if ($newName === '') {
             throw new Exception("Category name cannot be empty");
         }
-
-        $sql = "
-            UPDATE categories
+        $sql = "UPDATE categories
             SET name = ?
-            WHERE id = ?
-        ";
+            WHERE id = ?";
+        try {
+            $conn = $this->db->connect();
+            $stmt = $conn->prepare($sql);
 
-        $conn = $this->db->connect();
-        $stmt = $conn->prepare($sql);
+            $stmt->bind_param("si", $newName, $id);
 
-        $stmt->bind_param("si", $newName, $id);
+            if (!$stmt->execute()) {
+                throw new Exception("Failed to update category: " . $stmt->error);
+            }
 
-        if (!$stmt->execute()) {
-            throw new Exception("Failed to update category: " . $stmt->error);
+            return $stmt->affected_rows > 0;
+        } catch (Exception $e) {
+            throw $e;
+        } finally {
+            if ($stmt) {
+                $stmt->close();
+            }
+            if ($conn) {
+                $conn->close();
+            }
         }
-
-        return $stmt->affected_rows > 0;
     }
-    public function updateCategoryByOldName(string $oldName, string $newName): bool
+    public function updateCategoryWithOldName(string $newName,string $oldName): bool
     {
         $newName = trim($newName);
-
         if ($newName === '') {
             throw new Exception("Category name cannot be empty");
         }
+        $sql = "UPDATE categories
+            SET `name` = ?
+            WHERE `name` = ?";
+        try {
+            $conn = $this->db->connect();
+            $stmt = $conn->prepare($sql);
 
-        $sql = "
-            UPDATE categories
-            SET name = ?
-            WHERE name = ?
-        ";
+            $stmt->bind_param("ss", $newName, $oldname);
 
-        $conn = $this->db->connect();
-        $stmt = $conn->prepare($sql);
-
-        $stmt->bind_param("ss", $newName, $oldName);
-
-        if (!$stmt->execute()) {
-            throw new Exception("Failed to update category: " . $stmt->error);
+            if (!$stmt->execute()) {
+                throw new Exception("Failed to update category: " . $stmt->error);
+            }
+            return $stmt->affected_rows > 0;
+        } catch (Exception $e) {
+            throw $e;
+        } finally {
+            if ($stmt) {
+                $stmt->close();
+            }
+            if ($conn) {
+                $conn->close();
+            }
         }
-
-        return $stmt->affected_rows > 0;
     }
-
     #endregion
 
     #region DELETE
