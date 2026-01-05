@@ -122,25 +122,20 @@ class RepoAccount
             $result = $stmt->get_result();
             $row = $result->fetch_assoc();
 
-            if (!$row) {
+            if (!$row || (!password_verify($password, $row['password']))) {
                 throw new Exception("Invalid username or password");
             }
-
-            //TODO: Don't forget to uncomment when signup feature is created
-            // if (!password_verify($password, $row['password'])) {
-            //     throw new Exception("Invalid username or password");
-            // }
-
             if ($row['locked_until'] !== null && strtotime($row['locked_until']) > time()) {
                 throw new Exception("Account is temporarily locked");
             }
+
+            // Success retrieving account
             if (strtoupper($row['role']) === ACCOUNT_ROLES[0]) {
                 return $this->mapSQLResultToUser($row);
             }
             if (strtoupper($row['role']) === ACCOUNT_ROLES[1]) {
                 return $this->mapSQLResultToWriter($row);
             }
-            throw new Exception("Unknown account role");
         } finally {
             if ($stmt) {
                 $stmt->close();
@@ -153,40 +148,42 @@ class RepoAccount
     #endregion
 
     #region CREATE ACCOUNT
-    private function createAccount(Account $account, string $hashedPassword, $conn): void
+    private function createAccount(Account $account, string $hashedPassword, $conn): bool
     {
-        $sql = "
-        INSERT INTO accounts (
-            username,
-            password,
-            fullname,
-            email,
-            role,
-            profile_picture_address
-        )
-        VALUES (?, ?, ?, ?, ?, ?)
-    ";
+        $sql = "INSERT INTO accounts (
+                    username,
+                    password,
+                    fullname,
+                    email,
+                    role,
+                    profile_picture_address
+                )
+                VALUES (?, ?, ?, ?, ?, ?)";
+        try {
+            $stmt = $conn->prepare($sql);
+            if (!$stmt) {
+                throw new Exception("Failed to prepare account insert");
+            }
 
-        $stmt = $conn->prepare($sql);
-        if (!$stmt) {
-            throw new Exception("Failed to prepare account insert");
+            $stmt->bind_param(
+                "ssssss",
+                $account->getUsername(),
+                $hashedPassword,
+                $account->getFullname(),
+                $account->getEmail(),
+                $account->getRole(),
+                $account->getProfilePictureAddress()
+            );
+
+            if (!$stmt->execute()) {
+                throw new Exception("Failed to create account: {$stmt->error}");
+            }
+            return $stmt->affected_rows > 0;
+        } catch (Exception $e) {
+            throw $e;
+        } finally {
+            $stmt->close();
         }
-
-        $stmt->bind_param(
-            "ssssss",
-            $account->getUsername(),
-            $hashedPassword,
-            $account->getFullname(),
-            $account->getEmail(),
-            $account->getRole(),
-            $account->getProfilePictureAddress()
-        );
-
-        if (!$stmt->execute()) {
-            throw new Exception("Failed to create account: {$stmt->error}");
-        }
-
-        $stmt->close();
     }
     #endregion
     #region CREATE USER
@@ -200,18 +197,17 @@ class RepoAccount
 
             $this->createAccount($user, $hashedPassword, $conn);
 
-            $sql = "
-            INSERT INTO users (
-                username,
-                birthdate,
-                gender,
-                phone_number,
-                biography
-            )
-            VALUES (?, ?, ?, ?, ?)
-        ";
+            $sql = "INSERT INTO users (
+                        username,
+                        birthdate,
+                        gender,
+                        phone_number,
+                        biography
+                    )
+                    VALUES (?, ?, ?, ?, ?)";
 
             $stmt = $conn->prepare($sql);
+
             if (!$stmt) {
                 throw new Exception("Failed to prepare user insert");
             }
@@ -231,12 +227,11 @@ class RepoAccount
                 $biography
             );
 
-
             if (!$stmt->execute()) {
                 throw new Exception("Failed to create user profile: {$stmt->error}");
             }
-
             $conn->commit();
+
         } catch (Exception $e) {
             $conn->rollback();
             throw $e;
@@ -257,15 +252,13 @@ class RepoAccount
 
             $this->createAccount($writer, $hashedPassword, $conn);
 
-            $sql = "
-            INSERT INTO writers (
-                username,
-                biography,
-                is_verified,
-                media_id
-            )
-            VALUES (?, ?, ?, ?)
-        ";
+            $sql = "INSERT INTO writers (
+                        username,
+                        biography,
+                        is_verified,
+                        media_id
+                    )
+                    VALUES (?, ?, ?, ?)";
 
             $stmt = $conn->prepare($sql);
             if (!$stmt) {

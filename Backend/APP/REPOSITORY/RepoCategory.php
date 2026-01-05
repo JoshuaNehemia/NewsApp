@@ -24,11 +24,11 @@ class RepoCategory
     #endregion
 
     #region CREATE
-    public function create(string $name): bool
+    public function createCategory(string $name): bool
     {
         $name = trim($name);
         $sql = "
-            INSERT INTO categories (name)
+            INSERT IGNORE INTO categories (name)
             VALUES (?)
         ";
         try {
@@ -44,33 +44,14 @@ class RepoCategory
             if (!$stmt->execute()) {
                 throw new Exception("Failed to create category (maybe duplicate): " . $stmt->error);
             }
-        }
-        catch(Exception $e){
+            return $stmt->affected_rows > 0;
+        } catch (Exception $e) {
             throw $e;
+        } finally {
+            $stmt?->close();
+            $conn->close();
         }
-        finally{
-            
-        }
-
-        return true;
     }
-
-    public function createIfNotExists(string $name): bool
-    {
-        $sql = "
-            INSERT IGNORE INTO categories (name)
-            VALUES (?)
-        ";
-
-        $conn = $this->db->connect();
-        $stmt = $conn->prepare($sql);
-
-        $stmt->bind_param("s", $name);
-        $stmt->execute();
-
-        return $stmt->affected_rows > 0;
-    }
-
     #endregion
 
     #region RETRIEVE
