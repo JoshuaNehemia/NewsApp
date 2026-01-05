@@ -13,6 +13,8 @@ use MODELS\GEOGRAPHY\City;
 use MODELS\ACCOUNT\Writer;
 use MODELS\ACCOUNT\Media;
 use Exception;
+use Generator;
+
 #endregion
 
 class News
@@ -33,6 +35,8 @@ class News
 
     private array $tags = [];
     private float $rating = 0.0;
+
+    private string $created_at;
 
     #endregion
 
@@ -106,7 +110,10 @@ class News
     public function getMedia():Media{
         return $this->media;
     }
-    #endregion
+
+    public function getCreatedAt():string{
+        return $this->created_at;
+    }
 
     #region SETTERS
     public function setId(int $id): self
@@ -185,7 +192,7 @@ class News
     public function setViewCount(int $view_count): self
     {
         if ($view_count < 0) {
-            throw new Exception("View count cannot be negative");
+            throw new Exception("News View count cannot be negative");
         }
         $this->view_count = $view_count;
         return $this;
@@ -194,7 +201,7 @@ class News
     public function setLikeCount(int $like_count): self
     {
         if ($like_count < 0) {
-            throw new Exception("Like count cannot be negative");
+            throw new Exception("News Like count cannot be negative");
         }
         $this->like_count = $like_count;
         return $this;
@@ -210,7 +217,7 @@ class News
     {
         $tag = trim($tag);
         if ($tag === '') {
-            throw new Exception("Tag cannot be empty");
+            throw new Exception("News Tag cannot be empty");
         }
 
         if (!in_array($tag, $this->tags, true)) {
@@ -223,7 +230,7 @@ class News
     public function setRating(float $rating): self
     {
         if ($rating < 0 || $rating > 5) {
-            throw new Exception("Rating must be between 0 and 5");
+            throw new Exception("News Rating must be between 0 and 5");
         }
         $this->rating = $rating;
         return $this;
@@ -231,6 +238,17 @@ class News
 
     public function setMedia(Media $media):self{
         $this->media = $media;
+        return $this;
+    }
+
+    public function setCreatedAt(string $created_at): self
+    {
+
+        if (!preg_match(REGEX_DATE_TIME, $created_at)) {
+            throw new Exception("News created_at has invalid datetime format. Expected YYYY-MM-DD HH:mm:SS");
+        }
+
+        $this->created_at = $created_at;
         return $this;
     }
     #endregion
@@ -250,7 +268,8 @@ class News
             'rating' => $this->rating,
             'tags' => $this->tags,
             'author' => $this->author->toArray(),
-            'city' => $this->city->toArray()
+            'city' => $this->city->toArray(),
+            'created_at' => $this->created_at
         ];
     }
     #endregion

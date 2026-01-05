@@ -22,7 +22,8 @@ class Comment
     private User $user;
     private ?int $reply_to_id = null;
     private string $content;
-    private string $createdAt;
+    private int $reply_count;
+    private string $created_at;
     #endregion
 
     #region CONSTRUCTOR
@@ -57,9 +58,14 @@ class Comment
         return $this->content;
     }
 
+    public function getReplyCount(): int
+    {
+        return $this->reply_count;
+    }
+
     public function getCreatedAt(): string
     {
-        return $this->createdAt;
+        return $this->created_at;
     }
     #endregion
 
@@ -87,7 +93,7 @@ class Comment
 
     public function setReplyToId(?int $commentId): self
     {
-        if ($commentId !== null && $commentId <= 0) {
+        if ($commentId <= 0) {
             throw new Exception("Comment has invalid parent comment ID");
         }
 
@@ -115,14 +121,22 @@ class Comment
         return $this;
     }
 
-    public function setCreatedAt(string $createdAt): self
+    public function setReplyCount(int $reply_count): self
+    {
+        if ($reply_count < 0)
+            throw new Exception("Comment reply count can't be lower than zero");
+        $this->reply_count = $reply_count;
+        return $this;
+    }
+
+    public function setCreatedAt(string $created_at): self
     {
 
-        if (!preg_match(REGEX_DATE_TIME, $createdAt)) {
+        if (!preg_match(REGEX_DATE_TIME, $created_at)) {
             throw new Exception("Comment has invalid datetime format. Expected YYYY-MM-DD HH:mm:SS");
         }
 
-        $this->createdAt = $createdAt;
+        $this->created_at = $created_at;
         return $this;
     }
     #endregion
@@ -136,7 +150,8 @@ class Comment
             'user' => $this->user->toArray(),
             'reply_to_id' => $this->reply_to_id,
             'content' => $this->content,
-            'created_at' => $this->createdAt,
+            'reply_count' => $this->reply_count,
+            'created_at' => $this->created_at,
         ];
     }
     #endregion

@@ -125,97 +125,22 @@ class RepoAccount
             if (!$row) {
                 throw new Exception("Invalid username or password");
             }
+
             //TODO: Don't forget to uncomment when signup feature is created
             // if (!password_verify($password, $row['password'])) {
             //     throw new Exception("Invalid username or password");
             // }
 
-            //TODO: Is this mean ban? (I FORGOT THIS COLUMN MEAN)
-            //if (!$row['is_active']) {
-            //throw new Exception("Account is inactive");
-            //}
-
-            //TODO: Don't forget to change query so it retrieve locked_until column
-            //if ($row['locked_until'] !== null && strtotime($row['locked_until']) > time()) {
-            //   throw new Exception("Account is temporarily locked");
-            //}
-
-            $account = new Account();
-            $account;
-
+            if ($row['locked_until'] !== null && strtotime($row['locked_until']) > time()) {
+                throw new Exception("Account is temporarily locked");
+            }
             if (strtoupper($row['role']) === ACCOUNT_ROLES[0]) {
-
-                $country = null;
-                if ($row['user_country_id']) {
-                    $country = (new Country())
-                        ->setId((int) $row['user_country_id'])
-                        ->setCode($row['user_country_code'])
-                        ->setName($row['user_country_name'])
-                        ->setTelephone($row['user_country_telephone']);
-                }
-
-                $user = new User();
-                $user->setUsername($row['username']);
-                $user->setFullname($row['fullname']);
-                $user->setEmail($row['email']);
-                $user->setRole($row['role']);
-                $user->setBirthdate($row['user_birthdate']);
-                $user->setGender(strtoupper($row['user_gender']));
-                $user->setPhoneNumber($row['user_phone_number']);
-                $user->setBiography($row['user_biography']);
-                $user->setCountry($country);
-
-                return $user;
+                return $this->mapSQLResultToUser($row);
             }
-
             if (strtoupper($row['role']) === ACCOUNT_ROLES[1]) {
-
-                $country = (new Country())
-                    ->setId((int) $row['media_country_id'])
-                    ->setCode($row['media_country_code'])
-                    ->setName($row['media_country_name']);
-
-                $countryDivision = (new CountryDivision())
-                    ->setId((int) $row['media_country_division_id'])
-                    ->setName($row['media_country_division_name'])
-                    ->setCountry($country);
-
-                $city = (new City())
-                    ->setId((int) $row['media_city_id'])
-                    ->setName($row['media_city_name'])
-                    ->setGeolocation(
-                        new Geolocation(
-                            (float) $row['media_city_latitude'],
-                            (float) $row['media_city_longitude']
-                        )
-                    )
-                    ->setCountryDivision($countryDivision);
-
-                $media = (new Media())
-                    ->setId((int) $row['media_id'])
-                    ->setName($row['media_name'])
-                    ->setSlug($row['media_slug'])
-                    ->setCompanyName($row['media_company_name'])
-                    ->setType($row['media_type'])
-                    ->setWebsite($row['media_website'])
-                    ->setEmail($row['media_email'])
-                    ->setDescription($row['media_description'])
-                    ->setCity($city);
-
-                $writer = new Writer();
-                $writer->setUsername($row['username']);
-                $writer->setFullname($row['fullname']);
-                $writer->setEmail($row['email']);
-                $writer->setRole($row['role']);
-                $writer->setBiography($row['writer_biography']);
-                $writer->setIsVerified((bool) $row['writer_is_verified']);
-                $writer->setMedia($media);
-
-                return $writer;
+                return $this->mapSQLResultToWriter($row);
             }
-
             throw new Exception("Unknown account role");
-
         } finally {
             if ($stmt) {
                 $stmt->close();
@@ -373,5 +298,77 @@ class RepoAccount
             $conn->close();
         }
     }
+    #endregion
+
+    #region MAPPER
+    private function mapSQLResultToUser(array $row): User
+    {
+        $country = null;
+        if ($row['user_country_id']) {
+            $country = (new Country())
+                ->setId((int) $row['user_country_id'])
+                ->setCode($row['user_country_code'])
+                ->setName($row['user_country_name'])
+                ->setTelephone($row['user_country_telephone']);
+        }
+
+        $user = new User();
+        $user->setUsername($row['username']);
+        $user->setFullname($row['fullname']);
+        $user->setEmail($row['email']);
+        $user->setRole($row['role']);
+        $user->setBirthdate($row['user_birthdate']);
+        $user->setGender(strtoupper($row['user_gender']));
+        $user->setPhoneNumber($row['user_phone_number']);
+        $user->setBiography($row['user_biography']);
+        $user->setCountry($country);
+
+        return $user;
+    }
+    private function mapSQLResultToWriter(array $row): Writer
+    {
+        $country = (new Country())
+            ->setId((int) $row['media_country_id'])
+            ->setCode($row['media_country_code'])
+            ->setName($row['media_country_name']);
+
+        $countryDivision = (new CountryDivision())
+            ->setId((int) $row['media_country_division_id'])
+            ->setName($row['media_country_division_name'])
+            ->setCountry($country);
+
+        $city = (new City())
+            ->setId((int) $row['media_city_id'])
+            ->setName($row['media_city_name'])
+            ->setGeolocation(
+                new Geolocation(
+                    (float) $row['media_city_latitude'],
+                    (float) $row['media_city_longitude']
+                )
+            )
+            ->setCountryDivision($countryDivision);
+
+        $media = (new Media())
+            ->setId((int) $row['media_id'])
+            ->setName($row['media_name'])
+            ->setSlug($row['media_slug'])
+            ->setCompanyName($row['media_company_name'])
+            ->setType($row['media_type'])
+            ->setWebsite($row['media_website'])
+            ->setEmail($row['media_email'])
+            ->setDescription($row['media_description'])
+            ->setCity($city);
+
+        $writer = new Writer();
+        $writer->setUsername($row['username']);
+        $writer->setFullname($row['fullname']);
+        $writer->setEmail($row['email']);
+        $writer->setRole($row['role']);
+        $writer->setBiography($row['writer_biography']);
+        $writer->setIsVerified((bool) $row['writer_is_verified']);
+        $writer->setMedia($media);
+        return $writer;
+    }
+
     #endregion
 }

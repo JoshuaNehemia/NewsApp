@@ -404,7 +404,7 @@ ENGINE = InnoDB
 COMMENT = 'Stores the like and dislike of news articles';
 
 -- 16. Rate
-CREATE TABLE IF NOT EXISTS `rate` (
+CREATE TABLE IF NOT EXISTS `rates` (
   `id` BIGINT NOT NULL AUTO_INCREMENT,
   `news_id` BIGINT NOT NULL,
   `username` VARCHAR(45) NOT NULL,
