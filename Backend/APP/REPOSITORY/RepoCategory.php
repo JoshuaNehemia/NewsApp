@@ -167,7 +167,7 @@ class RepoCategory
             }
         }
     }
-    public function updateCategoryWithOldName(string $newName,string $oldName): bool
+    public function updateCategoryWithOldName(string $newName, string $oldName): bool
     {
         $newName = trim($newName);
         if ($newName === '') {
@@ -200,42 +200,56 @@ class RepoCategory
     #endregion
 
     #region DELETE
-    public function deleteById(int $id): bool
+    public function deleteCategoryById(int $id): bool
     {
-        $sql = "
-            DELETE FROM categories
-            WHERE id = ?
-        ";
+        $sql = "DELETE FROM categories
+            WHERE id = ?";
+        try {
+            $conn = $this->db->connect();
+            $stmt = $conn->prepare($sql);
 
-        $conn = $this->db->connect();
-        $stmt = $conn->prepare($sql);
+            $stmt->bind_param("i", $id);
 
-        $stmt->bind_param("i", $id);
+            if (!$stmt->execute()) {
+                throw new Exception("Failed to delete category: " . $stmt->error);
+            }
 
-        if (!$stmt->execute()) {
-            throw new Exception("Failed to delete category: " . $stmt->error);
+            return $stmt->affected_rows > 0;
+        } catch (Exception $e) {
+            throw $e;
+        } finally {
+            if ($stmt) {
+                $stmt->close();
+            }
+            if ($conn) {
+                $conn->close();
+            }
         }
-
-        return $stmt->affected_rows > 0;
     }
-
-    public function deleteByName(string $name): bool
+    public function deleteCategoryByName(string $name): bool
     {
-        $sql = "
-            DELETE FROM categories
-            WHERE name = ?
-        ";
+        $sql = "DELETE FROM categories
+            WHERE name = ?";
+        try {
+            $conn = $this->db->connect();
+            $stmt = $conn->prepare($sql);
 
-        $conn = $this->db->connect();
-        $stmt = $conn->prepare($sql);
+            $stmt->bind_param("s", $name);
 
-        $stmt->bind_param("s", $name);
-
-        if (!$stmt->execute()) {
-            throw new Exception("Failed to delete category: " . $stmt->error);
+            if (!$stmt->execute()) {
+                throw new Exception("Failed to delete category: " . $stmt->error);
+            }
+            return $stmt->affected_rows > 0;
+        } catch (Exception $e) {
+            throw $e;
+        } finally {
+            if ($stmt) {
+                $stmt->close();
+            }
+            if ($conn) {
+                $conn->close();
+            }
         }
-
-        return $stmt->affected_rows > 0;
     }
     #endregion
 }
