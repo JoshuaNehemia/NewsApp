@@ -30,10 +30,8 @@ class RepoRate
             throw new Exception("Rating must be between 1 and 5");
         }
 
-        $sql = "
-            INSERT INTO rates (news_id, username, rating)
-            VALUES (?, ?, ?)
-        ";
+        $sql = "INSERT INTO rates (news_id, username, rating)
+            VALUES (?, ?, ?);";
 
         $conn = null;
         $stmt = null;
@@ -47,8 +45,8 @@ class RepoRate
             }
 
             $news_id = $newsId;
-            $user    = $username;
-            $rate    = $rating;
+            $user = $username;
+            $rate = $rating;
 
             $stmt->bind_param("isi", $news_id, $user, $rate);
 
@@ -74,11 +72,9 @@ class RepoRate
     #region RETRIEVE
     public function findRateByNewsId(int $newsId): float
     {
-        $sql = "
-            SELECT COALESCE(AVG(rate), 0) AS avg_rating
+        $sql = "SELECT COALESCE(AVG(rate), 0) AS avg_rating
             FROM rates
-            WHERE news_id = ?
-        ";
+            WHERE news_id = ?;";
 
         $conn = null;
         $stmt = null;
@@ -99,7 +95,7 @@ class RepoRate
             }
 
             $result = $stmt->get_result()->fetch_assoc();
-            return (float)($result['avg_rating'] ?? 0);
+            return (float) ($result['avg_rating'] ?? 0);
 
         } catch (Exception $e) {
             throw $e;
@@ -121,11 +117,9 @@ class RepoRate
             throw new Exception("Rating must be between 1 and 5");
         }
 
-        $sql = "
-            UPDATE rates
+        $sql = "UPDATE rates
             SET rating = ?
-            WHERE news_id = ? AND username = ?
-        ";
+            WHERE news_id = ? AND username = ?;";
 
         $conn = null;
         $stmt = null;
@@ -138,9 +132,9 @@ class RepoRate
                 throw new Exception("Failed to prepare rate update statement");
             }
 
-            $rate    = $rating;
+            $rate = $rating;
             $news_id = $newsId;
-            $user    = $username;
+            $user = $username;
 
             $stmt->bind_param("iis", $rate, $news_id, $user);
 
@@ -166,10 +160,8 @@ class RepoRate
     #region DELETE
     public function deleteRate(int $newsId, string $username): bool
     {
-        $sql = "
-            DELETE FROM rates
-            WHERE news_id = ? AND username = ?
-        ";
+        $sql = "DELETE FROM rates
+            WHERE news_id = ? AND username = ?;";
 
         $conn = null;
         $stmt = null;
@@ -183,7 +175,7 @@ class RepoRate
             }
 
             $news_id = $newsId;
-            $user    = $username;
+            $user = $username;
 
             $stmt->bind_param("is", $news_id, $user);
 

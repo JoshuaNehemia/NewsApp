@@ -294,6 +294,7 @@ class RepoNews extends DatabaseConnection
         $news->setSlug($row['news_slug']);
         $news->setContent($row['news_content']);
         $news->setViewCount($row['news_views']);
+        $news->setCategory($row['category_name']);
         $news->setCity($city);
         $news->setAuthor($writer);
         return $news;

@@ -23,89 +23,116 @@ class RepoTag
     }
     #endregion
 
-    #region RETRIEVE
-    public function searchTagByCategoryId(int $categoryId): array
+    #region CREATE
+    public function createTag(int $categoryId, string $name): bool
     {
+        $tagName = trim($name);
+
+        if ($tagName === '') {
+            throw new Exception("Tag name cannot be empty");
+        }
+
         $sql = "
-            SELECT name
-            FROM tags
-            WHERE category_id = ?
-            ORDER BY name ASC
-        ";
+        INSERT INTO tags (category_id, name)
+        VALUES (?, ?)
+    ";
 
-        $conn = $this->db->connect();
-        $stmt = $conn->prepare($sql);
+        $conn = null;
+        $stmt = null;
 
-        if (!$stmt) {
-            throw new Exception("Failed to prepare tag retrieval statement");
+        try {
+            $conn = $this->db->connect();
+            $stmt = $conn->prepare($sql);
+
+            if (!$stmt) {
+                throw new Exception("Failed to prepare tag insert statement");
+            }
+
+            $cat_id = $categoryId;
+            $tag = $tagName;
+
+            $stmt->bind_param("is", $cat_id, $tag);
+
+            if (!$stmt->execute()) {
+                // duplicate tag per category
+                if ($conn->errno === 1062) {
+                    throw new Exception("Tag already exists in this category");
+                }
+
+                throw new Exception("Failed to create tag: " . $stmt->error);
+            }
+
+            return $stmt->affected_rows > 0;
+
+        } catch (Exception $e) {
+            throw $e;
+        } finally {
+            if ($stmt) {
+                $stmt->close();
+            }
+            if ($conn) {
+                $conn->close();
+            }
         }
-
-        $stmt->bind_param("i", $categoryId);
-        $stmt->execute();
-
-        $result = $stmt->get_result();
-
-        $tags = [];
-        while ($row = $result->fetch_assoc()) {
-            $tags[] = $row['name'];
-        }
-
-        return $tags;
-    }
-
-    public function searchTagsByCategory(int $categoryId, string $keyword): array
-    {
-        $sql = "
-            SELECT name
-            FROM tags
-            WHERE category_id = ?
-              AND name LIKE ?
-            ORDER BY name ASC
-        ";
-
-        $conn = $this->db->connect();
-        $stmt = $conn->prepare($sql);
-
-        $like = '%' . $keyword . '%';
-        $stmt->bind_param("is", $categoryId, $like);
-        $stmt->execute();
-
-        $result = $stmt->get_result();
-
-        $tags = [];
-        while ($row = $result->fetch_assoc()) {
-            $tags[] = $row['name'];
-        }
-
-        return $tags;
     }
     #endregion
 
-    #region CREATE
-    public function createTagIfNotExists(int $categoryId, string $name): bool
+    #region RETRIEVE
+    public function findTagByCategoryId(int $categoryId): array
     {
         $sql = "
-            INSERT IGNORE INTO tags (category_id, name)
-            VALUES (?, ?);
+            SELECT name
+            FROM tags
+            WHERE category_id = ?
+            ORDER BY name ASC
         ";
 
-        $conn = $this->db->connect();
-        $stmt = $conn->prepare($sql);
+        $conn = null;
+        $stmt = null;
 
-        $stmt->bind_param("is", $categoryId, $name);
-        $stmt->execute();
+        try {
+            $conn = $this->db->connect();
+            $stmt = $conn->prepare($sql);
 
-        return $stmt->affected_rows > 0;
+            if (!$stmt) {
+                throw new Exception("Failed to prepare tag retrieval statement");
+            }
+
+            $cat_id = $categoryId;
+            $stmt->bind_param("i", $cat_id);
+
+            if (!$stmt->execute()) {
+                throw new Exception("Failed to retrieve tags: " . $stmt->error);
+            }
+
+            $result = $stmt->get_result();
+            $tags = [];
+
+            while ($row = $result->fetch_assoc()) {
+                $tags[] = $row['name'];
+            }
+
+            return $tags;
+
+        } catch (Exception $e) {
+            throw $e;
+        } finally {
+            if ($stmt) {
+                $stmt->close();
+            }
+            if ($conn) {
+                $conn->close();
+            }
+        }
     }
-
     #endregion
 
     #region UPDATE
     public function updateTag(int $tagId, string $newName): bool
     {
-        $newName = trim($newName);
+        $name = trim($newName);
 
-        if ($newName === '') {
+        if ($name === '') {
             throw new Exception("Tag name cannot be empty");
         }
 
@@ -115,38 +142,78 @@ class RepoTag
             WHERE id = ?
         ";
 
-        $conn = $this->db->connect();
-        $stmt = $conn->prepare($sql);
+        $conn = null;
+        $stmt = null;
 
-        $stmt->bind_param("si", $newName, $tagId);
+        try {
+            $conn = $this->db->connect();
+            $stmt = $conn->prepare($sql);
 
-        if (!$stmt->execute()) {
-            throw new Exception("Failed to update tag: " . $stmt->error);
+            if (!$stmt) {
+                throw new Exception("Failed to prepare tag update statement");
+            }
+
+            $id = $tagId;
+
+            $stmt->bind_param("si", $name, $id);
+
+            if (!$stmt->execute()) {
+                throw new Exception("Failed to update tag: " . $stmt->error);
+            }
+
+            return $stmt->affected_rows > 0;
+
+        } catch (Exception $e) {
+            throw $e;
+        } finally {
+            if ($stmt) {
+                $stmt->close();
+            }
+            if ($conn) {
+                $conn->close();
+            }
         }
-
-        return $stmt->affected_rows > 0;
     }
-
     #endregion
 
     #region DELETE
-    public function deleteById(int $tagId): bool
+    public function deleteTag(int $tagId): bool
     {
         $sql = "
             DELETE FROM tags
             WHERE id = ?
         ";
 
-        $conn = $this->db->connect();
-        $stmt = $conn->prepare($sql);
+        $conn = null;
+        $stmt = null;
 
-        $stmt->bind_param("i", $tagId);
+        try {
+            $conn = $this->db->connect();
+            $stmt = $conn->prepare($sql);
 
-        if (!$stmt->execute()) {
-            throw new Exception("Failed to delete tag: " . $stmt->error);
+            if (!$stmt) {
+                throw new Exception("Failed to prepare tag delete statement");
+            }
+
+            $id = $tagId;
+            $stmt->bind_param("i", $id);
+
+            if (!$stmt->execute()) {
+                throw new Exception("Failed to delete tag: " . $stmt->error);
+            }
+
+            return $stmt->affected_rows > 0;
+
+        } catch (Exception $e) {
+            throw $e;
+        } finally {
+            if ($stmt) {
+                $stmt->close();
+            }
+            if ($conn) {
+                $conn->close();
+            }
         }
-
-        return $stmt->affected_rows > 0;
     }
     #endregion
 }
