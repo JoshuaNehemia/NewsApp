@@ -24,6 +24,7 @@ class Comment
     private string $content;
     private int $reply_count;
     private string $created_at;
+    private string $updated_at;
     #endregion
 
     #region CONSTRUCTOR
@@ -66,6 +67,10 @@ class Comment
     public function getCreatedAt(): string
     {
         return $this->created_at;
+    }
+    public function getUpdatedAt(): string
+    {
+        return $this->updated_at;
     }
     #endregion
 
@@ -139,6 +144,16 @@ class Comment
         $this->created_at = $created_at;
         return $this;
     }
+    public function setUpdatedAt(string $updated_at): self
+    {
+
+        if (!preg_match(REGEX_DATE_TIME, $updated_at)) {
+            throw new Exception("Comment has invalid datetime format. Expected YYYY-MM-DD HH:mm:SS");
+        }
+
+        $this->updated_at = $updated_at;
+        return $this;
+    }
     #endregion
 
     #region UTILITIES
@@ -152,6 +167,7 @@ class Comment
             'content' => $this->content,
             'reply_count' => $this->reply_count,
             'created_at' => $this->created_at,
+            'updated_at' => $this->updated_at
         ];
     }
     #endregion

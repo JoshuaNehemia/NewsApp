@@ -29,14 +29,12 @@ class News
     private Media $media;
     private City $city;
     private string $category;
-
     private int $view_count = 0;
     private int $like_count = 0;
-
     private array $tags = [];
     private float $rating = 0.0;
-
     private string $created_at;
+    private string $updated_at;
 
     #endregion
 
@@ -107,12 +105,18 @@ class News
         return $this->rating;
     }
 
-    public function getMedia():Media{
+    public function getMedia(): Media
+    {
         return $this->media;
     }
 
-    public function getCreatedAt():string{
+    public function getCreatedAt(): string
+    {
         return $this->created_at;
+    }
+    public function getUpdatedAt(): string
+    {
+        return $this->updated_at;
     }
 
     #region SETTERS
@@ -236,7 +240,8 @@ class News
         return $this;
     }
 
-    public function setMedia(Media $media):self{
+    public function setMedia(Media $media): self
+    {
         $this->media = $media;
         return $this;
     }
@@ -249,6 +254,16 @@ class News
         }
 
         $this->created_at = $created_at;
+        return $this;
+    }
+    public function setUpdatedAt(string $updated_at): self
+    {
+
+        if (!preg_match(REGEX_DATE_TIME, $updated_at)) {
+            throw new Exception("News created_at has invalid datetime format. Expected YYYY-MM-DD HH:mm:SS");
+        }
+
+        $this->updated_at = $updated_at;
         return $this;
     }
     #endregion
@@ -269,7 +284,8 @@ class News
             'tags' => $this->tags,
             'author' => $this->author->toArray(),
             'city' => $this->city->toArray(),
-            'created_at' => $this->created_at
+            'created_at' => $this->created_at,
+            'updated_at' => $this->updated_at
         ];
     }
     #endregion

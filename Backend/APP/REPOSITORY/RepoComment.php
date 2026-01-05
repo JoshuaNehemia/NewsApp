@@ -57,6 +57,7 @@ class RepoComment
                 c.reply_to_id,
                 c.content,
                 c.created_at,
+                c.updated_at,
                 COUNT(rt.comment_id) - 1 AS reply_count
             FROM comments c
             LEFT JOIN reply_tree rt
@@ -80,7 +81,10 @@ class RepoComment
             }
 
             $stmt->bind_param("iiii", $news_id, $news_id, $limit, $offset);
-            $stmt->execute();
+
+            if (!$stmt->execute()) {
+                throw new Exception("Failed to find comment:" . $stmt->error);
+            }
 
             $result = $stmt->get_result();
 
@@ -88,15 +92,21 @@ class RepoComment
                 $comments[] = $this->mapSQLResultToCommentObject($row);
             }
 
-            $stmt->close();
             return $comments;
 
         } catch (Exception $e) {
-            throw new Exception("Error fetching comments: " . $e->getMessage());
+            throw $e;
+        } finally {
+            if ($stmt) {
+                $stmt->close();
+            }
+            if ($conn) {
+                $conn->close();
+            }
         }
     }
 
-        public function findReplyCommentByReplyToId(int $replyToId, int $limit = 10, int $offset = 0): array
+    public function findReplyCommentByReplyToId(int $replyToId, int $limit = 10, int $offset = 0): array
     {
         $sql = "WITH RECURSIVE reply_tree AS (
                 SELECT
@@ -122,6 +132,7 @@ class RepoComment
                 c.reply_to_id,
                 c.content,
                 c.created_at,
+                c.updated_at,
                 COUNT(rt.comment_id) - 1 AS reply_count
             FROM comments c
             LEFT JOIN reply_tree rt
@@ -145,19 +156,27 @@ class RepoComment
             }
 
             $stmt->bind_param("iiii", $news_id, $news_id, $limit, $offset);
-            $stmt->execute();
+
+            if (!$stmt->execute()) {
+                throw new Exception("Failed to find comment:" . $stmt->error);
+            }
 
             $result = $stmt->get_result();
 
             while ($row = $result->fetch_assoc()) {
                 $comments[] = $this->mapSQLResultToCommentObject($row);
             }
-
-            $stmt->close();
             return $comments;
 
         } catch (Exception $e) {
-            throw new Exception("Error fetching comments: " . $e->getMessage());
+            throw $e;
+        } finally {
+            if ($stmt) {
+                $stmt->close();
+            }
+            if ($conn) {
+                $conn->close();
+            }
         }
     }
     #endregion
@@ -165,14 +184,12 @@ class RepoComment
     #region CREATE
     public function createComment(Comment $comment): bool
     {
-        $sql = "
-            INSERT INTO comments (
+        $sql = "INSERT INTO comments (
                 news_id,
                 username,
                 reply_to_id,
                 content
-            ) VALUES (?, ?, ?, ?);
-        ";
+            ) VALUES (?, ?, ?, ?);";
 
         try {
             $conn = $this->db->connect();
@@ -195,13 +212,21 @@ class RepoComment
                 $content
             );
 
-            $success = $stmt->execute();
-            $stmt->close();
+            if (!$stmt->execute()) {
+                throw new Exception("Failed to create comment:" . $stmt->error);
+            }
 
-            return $success;
+            return $stmt->affected_rows > 0;
 
         } catch (Exception $e) {
-            throw new Exception("Error creating comment: " . $e->getMessage());
+            throw $e;
+        } finally {
+            if ($stmt) {
+                $stmt->close();
+            }
+            if ($conn) {
+                $conn->close();
+            }
         }
     }
     #endregion
@@ -209,13 +234,11 @@ class RepoComment
     #region UPDATE
     public function updateComment(Comment $comment): bool
     {
-        $sql = "
-            UPDATE comments
+        $sql = "UPDATE comments
             SET content = ?
             WHERE id = ?
               AND username = ?
-            LIMIT 1;
-        ";
+            LIMIT 1;";
 
         try {
             $conn = $this->db->connect();
@@ -231,13 +254,21 @@ class RepoComment
 
             $stmt->bind_param("sis", $content, $id, $username);
 
-            $success = $stmt->execute();
-            $stmt->close();
+            if (!$stmt->execute()) {
+                throw new Exception("Failed to create comment:" . $stmt->error);
+            }
 
-            return $success;
+            return $stmt->affected_rows > 0;
 
         } catch (Exception $e) {
-            throw new Exception("Error updating comment: " . $e->getMessage());
+            throw $e;
+        } finally {
+            if ($stmt) {
+                $stmt->close();
+            }
+            if ($conn) {
+                $conn->close();
+            }
         }
     }
     #endregion
@@ -245,12 +276,10 @@ class RepoComment
     #region DELETE
     public function deleteComment(Comment $comment): bool
     {
-        $sql = "
-            DELETE FROM comments
+        $sql = "DELETE FROM comments
             WHERE id = ?
               AND username = ?
-            LIMIT 1;
-        ";
+            LIMIT 1;";
 
         try {
             $conn = $this->db->connect();
@@ -288,6 +317,7 @@ class RepoComment
         $comment = new Comment();
         $comment->setId($row["id"]);
         $comment->setCreatedAt($row["created_at"]);
+        $comment->setUpdatedAt($row["udpated_at"]);
         $comment->setContent($row['content']);
         $comment->setUser($user);
         $comment->setNews($news);
