@@ -78,7 +78,7 @@ class RepoTag
     #endregion
 
     #region RETRIEVE
-    public function findTagByCategoryId(int $categoryId): array
+    public function findTagByCategoryId(int $category_id): array
     {
         $sql = "
             SELECT name
@@ -98,8 +98,55 @@ class RepoTag
                 throw new Exception("Failed to prepare tag retrieval statement");
             }
 
-            $cat_id = $categoryId;
-            $stmt->bind_param("i", $cat_id);
+            $stmt->bind_param("i", $category_id);
+
+            if (!$stmt->execute()) {
+                throw new Exception("Failed to retrieve tags: " . $stmt->error);
+            }
+
+            $result = $stmt->get_result();
+            $tags = [];
+
+            while ($row = $result->fetch_assoc()) {
+                $tags[] = $row['name'];
+            }
+
+            return $tags;
+
+        } catch (Exception $e) {
+            throw $e;
+        } finally {
+            if ($stmt) {
+                $stmt->close();
+            }
+            if ($conn) {
+                $conn->close();
+            }
+        }
+    }
+
+    
+    public function findTagByName(string $name): array
+    {
+        $name = "%{$name}%";
+        $sql = "
+            SELECT name
+            FROM tags
+            WHERE name IS LIKE {$name};
+        ";
+
+        $conn = null;
+        $stmt = null;
+
+        try {
+            $conn = $this->db->connect();
+            $stmt = $conn->prepare($sql);
+
+            if (!$stmt) {
+                throw new Exception("Failed to prepare tag retrieval statement");
+            }
+
+            $stmt->bind_param("s", $name);
 
             if (!$stmt->execute()) {
                 throw new Exception("Failed to retrieve tags: " . $stmt->error);
