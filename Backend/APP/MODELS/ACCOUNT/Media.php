@@ -66,9 +66,24 @@ class Media
         return $this->logo_address;
     }
 
+    public function getLogoExtension(): string
+    {
+        if (empty($this->logo_address)) {
+            return '';
+        }
+        return strtolower(pathinfo($this->logo_address, PATHINFO_EXTENSION));
+    }
+
     public function getPictureAddress(): string
     {
         return $this->picture_address;
+    }
+    public function getPictureExtension(): string
+    {
+        if (empty($this->picture_address)) {
+            return '';
+        }
+        return strtolower(pathinfo($this->picture_address, PATHINFO_EXTENSION));
     }
 
     public function getWebsite(): string
@@ -196,8 +211,8 @@ class Media
             'slug' => $this->slug,
             'company_name' => $this->company_name,
             'type' => $this->type,
-            'logo_address' => $this->logo_address,
-            'picture_address' => $this->picture_address,
+            'logo_ext' => $this->getLogoExtension(),
+            'picture_ext' => $this->getPictureExtension(),
             'website' => $this->website,
             'email' => $this->email,
             'description' => $this->description,
@@ -207,11 +222,11 @@ class Media
 
     public function createLogoAddressFromExt($ext)
     {
-        $this->logo_address = IMAGE_DATABASE_ADDRESS ."MEDIA/" ."LOGO/" .$this->getSlug() .$ext;
+        $this->logo_address = IMAGE_DATABASE_ADDRESS . "MEDIA/" . "LOGO/" . $this->getSlug() . $ext;
     }
     public function createPictureAddressFromExt($ext)
     {
-        $this->picture_address = IMAGE_DATABASE_ADDRESS ."MEDIA/" ."PICTURE/" .$this->getSlug() .$ext;
+        $this->picture_address = IMAGE_DATABASE_ADDRESS . "MEDIA/" . "PICTURE/" . $this->getSlug() . $ext;
     }
     #endregion
 }

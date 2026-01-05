@@ -3,10 +3,14 @@ namespace REPOSITORY;
 
 #region REQUIRE
 require_once(__DIR__ . "/../MODELS/CORE/DatabaseConnection.php");
+require_once(__DIR__ . "/../MODELS/GEOGRAPHY/City.php");
+require_once(__DIR__ . "/../MODELS/ACCOUNT/Media.php");
 #endregion
 
 #region USE
 use MODELS\CORE\DatabaseConnection;
+use MODELS\ACCOUNT\Media;
+use MODELS\GEOGRAPHY\City;
 use Exception;
 #endregion
 
@@ -23,257 +27,356 @@ class RepoMedia
     }
     #endregion
 
-    /* =========================================================
-     * CREATE
-     * ========================================================= */
     #region CREATE
-
-    public function create(array $data): bool
+    public function createMedia(Media $media): bool
     {
-        $sql = "
-            INSERT INTO medias (
+        $sql = "INSERT INTO medias (
                 name, slug, company_name, media_type,
                 picture_ext, logo_ext,
                 website, email, description, city_id
             ) VALUES (
                 ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
-            )
-        ";
+            );";
+        try {
+            $conn = $this->db->connect();
+            $stmt = $conn->prepare($sql);
 
-        $conn = $this->db->connect();
-        $stmt = $conn->prepare($sql);
+            if (!$stmt) {
+                throw new Exception("Failed to prepare media insert statement");
+            }
+            $name = $media->getName();
+            $slug = $media->getSlug();
+            $company_name = $media->getCompanyName();
+            $type = $media->getType();
+            $picture_ext = $media->getPictureExtension();
+            $logo_ext = $media->getLogoExtension();
+            $website = $media->getWebsite();
+            $email = $media->getEmail();
+            $description = $media->getDescription();
+            $city_id = $media->getCity()->getId();
+            $stmt->bind_param(
+                "sssssssssi",
+                $name,
+                $slug,
+                $company_name,
+                $type,
+                $picture_ext,
+                $logo_ext,
+                $website,
+                $email,
+                $description,
+                $city_id
+            );
 
-        if (!$stmt) {
-            throw new Exception("Failed to prepare media insert statement");
+            if (!$stmt->execute()) {
+                throw new Exception("Failed to create media: " . $stmt->error);
+            }
+
+            return $stmt->affected_rows > 0;
+        } catch (Exception $e) {
+            throw $e;
+        } finally {
+            if ($stmt) {
+                $stmt->close();
+            }
+            if ($conn) {
+                $conn->close();
+            }
         }
-
-        $stmt->bind_param(
-            "sssssssssi",
-            $data['name'],
-            $data['slug'],
-            $data['company_name'],
-            $data['media_type'],
-            $data['picture_ext'],
-            $data['logo_ext'],
-            $data['website'],
-            $data['email'],
-            $data['description'],
-            $data['city_id']
-        );
-
-        if (!$stmt->execute()) {
-            throw new Exception("Failed to create media: " . $stmt->error);
-        }
-
-        return true;
     }
-
     #endregion
 
-    /* =========================================================
-     * RETRIEVE
-     * ========================================================= */
     #region RETRIEVE
-
-    public function findById(int $id, bool $withDeleted = false): ?array
+    public function findMediaById(int $id, bool $withDeleted = false): Media
     {
-        $sql = "
-            SELECT *
-            FROM medias
+        $is_deleted = ($withDeleted ? "" : "AND deleted_at IS NULL");
+        $sql = "SELECT 
+                    m.*,
+                    c.id as 'city_id',
+                    c.name as 'city_name'
+            FROM medias m
+            INNER JOIN cities c
+            ON m.city_id = c.id
             WHERE id = ?
-            " . ($withDeleted ? "" : "AND deleted_at IS NULL") . "
-            LIMIT 1
+            {$is_deleted} 
         ";
+        try {
+            $conn = $this->db->connect();
+            $stmt = $conn->prepare($sql);
+            $stmt->bind_param("i", $id);
 
-        $conn = $this->db->connect();
-        $stmt = $conn->prepare($sql);
-        $stmt->bind_param("i", $id);
-        $stmt->execute();
+            if (!$stmt->execute()) {
+                throw new Exception("Failed to retrieve media: " . $stmt->error);
+            }
 
-        return $stmt->get_result()->fetch_assoc() ?: null;
-    }
-
-    public function findBySlug(string $slug): ?array
-    {
-        $sql = "
-            SELECT *
-            FROM medias
-            WHERE slug = ?
-              AND deleted_at IS NULL
-            LIMIT 1
-        ";
-
-        $conn = $this->db->connect();
-        $stmt = $conn->prepare($sql);
-        $stmt->bind_param("s", $slug);
-        $stmt->execute();
-
-        return $stmt->get_result()->fetch_assoc() ?: null;
-    }
-
-    public function findAll(bool $onlyActive = true): array
-    {
-        $sql = "
-            SELECT *
-            FROM medias
-            WHERE deleted_at IS NULL
-        ";
-
-        if ($onlyActive) {
-            $sql .= " AND is_active = TRUE";
+            $result = $stmt->get_result();
+            return $this->mapSQLResultToMediaObject($result->fetch_assoc());
+        } catch (Exception $e) {
+            throw $e;
+        } finally {
+            if ($stmt) {
+                $stmt->close();
+            }
+            if ($conn) {
+                $conn->close();
+            }
         }
+    }
+    public function findMediaByName(string $name, bool $withDeleted = false): Media
+    {
+        $is_deleted = ($withDeleted ? "" : "AND deleted_at IS NULL");
+        $sql = "SELECT 
+                    m.*,
+                    c.id as 'city_id',
+                    c.name as 'city_name'
+            FROM medias m
+            INNER JOIN cities c
+            ON m.city_id = c.id
+            WHERE name = ?
+            {$is_deleted} 
+        ";
+        try {
+            $conn = $this->db->connect();
+            $stmt = $conn->prepare($sql);
+            $stmt->bind_param("s", $name);
 
-        $sql .= " ORDER BY name ASC";
+            if (!$stmt->execute()) {
+                throw new Exception("Failed to retrieve media: " . $stmt->error);
+            }
 
-        $conn = $this->db->connect();
-        $stmt = $conn->prepare($sql);
-        $stmt->execute();
-
-        return $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+            $result = $stmt->get_result();
+            return $this->mapSQLResultToMediaObject($result->fetch_assoc());
+        } catch (Exception $e) {
+            throw $e;
+        } finally {
+            if ($stmt) {
+                $stmt->close();
+            }
+            if ($conn) {
+                $conn->close();
+            }
+        }
     }
 
     #endregion
 
-    /* =========================================================
-     * UPDATE
-     * ========================================================= */
     #region UPDATE
-
-    public function update(int $id, array $data): bool
+#region UPDATE
+    public function updateMedia(int $id, Media $media): bool
     {
-        $sql = "
-            UPDATE medias
-            SET
-                name = ?,
-                company_name = ?,
-                media_type = ?,
-                picture_ext = ?,
-                logo_ext = ?,
-                website = ?,
-                email = ?,
-                description = ?,
-                city_id = ?,
-                is_active = ?
-            WHERE id = ?
-              AND deleted_at IS NULL
-        ";
+        $sql = "UPDATE medias
+        SET
+            name = ?,
+            company_name = ?,
+            media_type = ?,
+            picture_ext = ?,
+            logo_ext = ?,
+            website = ?,
+            email = ?,
+            description = ?,
+            city_id = ?
+        WHERE id = ?
+          AND deleted_at IS NULL";
 
-        $conn = $this->db->connect();
-        $stmt = $conn->prepare($sql);
+        $stmt = null;
+        $conn = null;
 
-        $stmt->bind_param(
-            "ssssssssiii",
-            $data['name'],
-            $data['company_name'],
-            $data['media_type'],
-            $data['picture_ext'],
-            $data['logo_ext'],
-            $data['website'],
-            $data['email'],
-            $data['description'],
-            $data['city_id'],
-            $data['is_active'],
-            $id
-        );
+        try {
+            $conn = $this->db->connect();
+            $stmt = $conn->prepare($sql);
 
-        if (!$stmt->execute()) {
-            throw new Exception("Failed to update media: " . $stmt->error);
+            if (!$stmt) {
+                throw new Exception("Failed to prepare media update statement");
+            }
+
+            $name = $media->getName();
+            $companyName = $media->getCompanyName();
+            $mediaType = $media->getType();
+            $pictureExt = $media->getPictureExtension();
+            $logoExt = $media->getLogoExtension();
+            $website = $media->getWebsite();
+            $email = $media->getEmail();
+            $description = $media->getDescription();
+            $cityId = $media->getCity()->getId();
+            $mediaId = $id;
+
+            $stmt->bind_param(
+                "ssssssssii",
+                $name,
+                $companyName,
+                $mediaType,
+                $pictureExt,
+                $logoExt,
+                $website,
+                $email,
+                $description,
+                $cityId,
+                $mediaId
+            );
+
+            if (!$stmt->execute()) {
+                throw new Exception("Failed to update media: " . $stmt->error);
+            }
+
+            return $stmt->affected_rows > 0;
+
+        } catch (Exception $e) {
+            throw $e;
+        } finally {
+            if ($stmt) {
+                $stmt->close();
+            }
+            if ($conn) {
+                $conn->close();
+            }
         }
-
-        return $stmt->affected_rows > 0;
     }
-
-    public function updateSlug(int $id, string $slug): bool
-    {
-        $sql = "
-            UPDATE medias
-            SET slug = ?
-            WHERE id = ?
-              AND deleted_at IS NULL
-        ";
-
-        $conn = $this->db->connect();
-        $stmt = $conn->prepare($sql);
-        $stmt->bind_param("si", $slug, $id);
-
-        if (!$stmt->execute()) {
-            throw new Exception("Failed to update media slug");
-        }
-
-        return $stmt->affected_rows > 0;
-    }
-
     #endregion
 
-    /* =========================================================
-     * DELETE
-     * ========================================================= */
     #region DELETE
+    public function deleteMedia(int $id, bool $soft = true): bool
+    {
+        try {
+            return $soft
+                ? $this->softDelete($id)
+                : $this->hardDelete($id);
+        } catch (Exception $e) {
+            throw $e;
+        }
+    }
 
-    /**
-     * Soft delete
-     */
+
     public function softDelete(int $id): bool
     {
         $sql = "
-            UPDATE medias
-            SET deleted_at = NOW(), is_active = FALSE
-            WHERE id = ?
-        ";
+        UPDATE medias
+        SET deleted_at = NOW(), is_active = FALSE
+        WHERE id = ?
+          AND deleted_at IS NULL
+    ";
 
-        $conn = $this->db->connect();
-        $stmt = $conn->prepare($sql);
-        $stmt->bind_param("i", $id);
+        $stmt = null;
+        $conn = null;
 
-        if (!$stmt->execute()) {
-            throw new Exception("Failed to soft delete media");
+        try {
+            $conn = $this->db->connect();
+            $stmt = $conn->prepare($sql);
+
+            if (!$stmt) {
+                throw new Exception("Failed to prepare soft delete statement");
+            }
+
+            $stmt->bind_param("i", $id);
+
+            if (!$stmt->execute()) {
+                throw new Exception("Failed to soft delete media: " . $stmt->error);
+            }
+
+            return $stmt->affected_rows > 0;
+
+        } catch (Exception $e) {
+            throw $e;
+        } finally {
+            if ($stmt) {
+                $stmt->close();
+            }
+            if ($conn) {
+                $conn->close();
+            }
         }
-
-        return $stmt->affected_rows > 0;
     }
 
-    /**
-     * Restore soft deleted media
-     */
-    public function restore(int $id): bool
+    public function hardDelete(int $id): bool
+    {
+        $sql = "DELETE FROM medias WHERE id = ?";
+
+        $stmt = null;
+        $conn = null;
+
+        try {
+            $conn = $this->db->connect();
+            $stmt = $conn->prepare($sql);
+
+            if (!$stmt) {
+                throw new Exception("Failed to prepare hard delete statement");
+            }
+
+            $stmt->bind_param("i", $id);
+
+            if (!$stmt->execute()) {
+                throw new Exception("Failed to permanently delete media: " . $stmt->error);
+            }
+
+            return $stmt->affected_rows > 0;
+
+        } catch (Exception $e) {
+            throw $e;
+        } finally {
+            if ($stmt) {
+                $stmt->close();
+            }
+            if ($conn) {
+                $conn->close();
+            }
+        }
+    }
+    public function restoreMedia(int $id): bool
     {
         $sql = "
-            UPDATE medias
-            SET deleted_at = NULL, is_active = TRUE
-            WHERE id = ?
-        ";
+        UPDATE medias
+        SET deleted_at = NULL, is_active = TRUE
+        WHERE id = ?
+    ";
 
-        $conn = $this->db->connect();
-        $stmt = $conn->prepare($sql);
-        $stmt->bind_param("i", $id);
+        $stmt = null;
+        $conn = null;
 
-        if (!$stmt->execute()) {
-            throw new Exception("Failed to restore media");
+        try {
+            $conn = $this->db->connect();
+            $stmt = $conn->prepare($sql);
+
+            if (!$stmt) {
+                throw new Exception("Failed to prepare restore media statement");
+            }
+
+            $stmt->bind_param("i", $id);
+
+            if (!$stmt->execute()) {
+                throw new Exception("Failed to restore media: " . $stmt->error);
+            }
+
+            return $stmt->affected_rows > 0;
+
+        } catch (Exception $e) {
+            throw $e;
+        } finally {
+            if ($stmt) {
+                $stmt->close();
+            }
+            if ($conn) {
+                $conn->close();
+            }
         }
-
-        return $stmt->affected_rows > 0;
     }
 
-    /**
-     * Hard delete (dangerous)
-     */
-    public function deleteHard(int $id): bool
+    #endregion
+
+    #region MAPPER
+    private function mapSQLResultToMediaObject(array $row): Media
     {
-        $sql = "
-            DELETE FROM medias
-            WHERE id = ?
-        ";
-
-        $conn = $this->db->connect();
-        $stmt = $conn->prepare($sql);
-        $stmt->bind_param("i", $id);
-
-        if (!$stmt->execute()) {
-            throw new Exception("Failed to permanently delete media");
-        }
-
-        return $stmt->affected_rows > 0;
+        $city = new City();
+        $city->setId($row["city_id"]);
+        $city->setName($row["city_name"]);
+        $media = new Media();
+        $media->setId($row['id']);
+        $media->setName($row['name']);
+        $media->setDescription($row['description']);
+        $media->setWebsite($row['website']);
+        $media->setEmail($row['email']);
+        $media->createLogoAddressFromExt($row['logo_ext']);
+        $media->createPictureAddressFromExt($row['picture_ext']);
+        $media->setCity($city);
+        return $media;
     }
-
     #endregion
 }

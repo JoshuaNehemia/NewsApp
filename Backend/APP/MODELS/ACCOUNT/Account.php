@@ -49,6 +49,14 @@ class Account
     {
         return $this->profile_picture_address;
     }
+
+        public function getProfilePictureExtension(): string
+    {
+        if (empty($this->profile_picture_address)) {
+            return '';
+        }
+        return strtolower(pathinfo($this->profile_picture_address, PATHINFO_EXTENSION));
+    }
     #endregion
 
     #region SETTER

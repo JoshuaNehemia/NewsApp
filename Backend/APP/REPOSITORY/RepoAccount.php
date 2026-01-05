@@ -28,6 +28,7 @@ use MODELS\CORE\Geolocation;
 use Exception;
 #endregion
 
+//TODO: Change the reference bind param to a variable
 class RepoAccount
 {
     #region FIELDS
@@ -202,7 +203,8 @@ class RepoAccount
                         birthdate,
                         gender,
                         phone_number,
-                        biography
+                        biography,
+                        profile_picture_ext
                     )
                     VALUES (?, ?, ?, ?, ?)";
 
@@ -217,6 +219,7 @@ class RepoAccount
             $gender = $user->getGender();
             $phone = $user->getPhoneNumber();
             $biography = $user->getBiography();
+            $profile_picture_ext = $user->getProfilePictureExtension();
 
             $stmt->bind_param(
                 "sssss",
@@ -224,7 +227,8 @@ class RepoAccount
                 $birthdate,
                 $gender,
                 $phone,
-                $biography
+                $biography,
+                $profile_picture_ext
             );
 
             if (!$stmt->execute()) {
@@ -301,6 +305,188 @@ class RepoAccount
         }
     }
     #endregion
+
+    #region UPDATE ACCOUNT
+    private function updateAccount(Account $account, $conn): void
+    {
+        $stmt = null;
+
+        try {
+            $sql = "UPDATE accounts
+                SET fullname = ?,
+                    email = ?,
+                    profile_picture_address = ?
+                WHERE username = ?";
+
+            $stmt = $conn->prepare($sql);
+            if (!$stmt) {
+                throw new Exception("Failed to prepare account update");
+            }
+
+            $stmt->bind_param(
+                "ssss",
+                $account->getFullname(),
+                $account->getEmail(),
+                $account->getProfilePictureAddress(),
+                $account->getUsername()
+            );
+
+            if (!$stmt->execute()) {
+                throw new Exception("Failed to update account: {$stmt->error}");
+            }
+        } finally {
+            if ($stmt) {
+                $stmt->close();
+            }
+        }
+    }
+    #endregion
+#region UPDATE USER
+    public function updateUser(User $user): bool
+    {
+        $conn = null;
+        $stmt = null;
+
+        try {
+            $conn = $this->db->connect();
+            $conn->begin_transaction();
+
+            $this->updateAccount($user, $conn);
+
+            $sql = "UPDATE users
+                SET birthdate = ?,
+                    gender = ?,
+                    phone_number = ?,
+                    biography = ?,
+                    profile_picture_ext = ?,
+                    country_id = ?
+                WHERE username = ?";
+
+            $stmt = $conn->prepare($sql);
+            if (!$stmt) {
+                throw new Exception("Failed to prepare user update");
+            }
+
+            $countryId = $user->getCountry() ? $user->getCountry()->getId() : null;
+
+            $stmt->bind_param(
+                "sssssis",
+                $user->getBirthdate(),
+                $user->getGender(),
+                $user->getPhoneNumber(),
+                $user->getBiography(),
+                $user->getProfilePictureExtension(),
+                $countryId,
+                $user->getUsername()
+            );
+
+            if (!$stmt->execute()) {
+                throw new Exception("Failed to update user: {$stmt->error}");
+            }
+
+            $conn->commit();
+            return true;
+        } catch (Exception $e) {
+            if ($conn) {
+                $conn->rollback();
+            }
+            throw $e;
+        } finally {
+            if ($stmt) {
+                $stmt->close();
+            }
+            if ($conn) {
+                $conn->close();
+            }
+        }
+    }
+    #endregion
+#region UPDATE WRITER
+    public function updateWriter(Writer $writer): bool
+    {
+        $conn = null;
+        $stmt = null;
+
+        try {
+            $conn = $this->db->connect();
+            $conn->begin_transaction();
+
+            $this->updateAccount($writer, $conn);
+
+            $sql = "UPDATE writers
+                SET biography = ?,
+                    is_verified = ?,
+                    media_id = ?
+                WHERE username = ?";
+
+            $stmt = $conn->prepare($sql);
+            if (!$stmt) {
+                throw new Exception("Failed to prepare writer update");
+            }
+
+            $stmt->bind_param(
+                "siis",
+                $writer->getBiography(),
+                $writer->isVerified() ? 1 : 0,
+                $writer->getMedia()->getId(),
+                $writer->getUsername()
+            );
+
+            if (!$stmt->execute()) {
+                throw new Exception("Failed to update writer: {$stmt->error}");
+            }
+
+            $conn->commit();
+            return true;
+        } catch (Exception $e) {
+            if ($conn) {
+                $conn->rollback();
+            }
+            throw $e;
+        } finally {
+            if ($stmt) {
+                $stmt->close();
+            }
+            if ($conn) {
+                $conn->close();
+            }
+        }
+    }
+    #endregion
+#region DELETE ACCOUNT
+    public function deleteAccount(string $username): bool
+    {
+        $conn = null;
+        $stmt = null;
+
+        try {
+            $conn = $this->db->connect();
+
+            $sql = "DELETE FROM accounts WHERE username = ?";
+            $stmt = $conn->prepare($sql);
+
+            if (!$stmt) {
+                throw new Exception("Failed to prepare account delete");
+            }
+
+            $stmt->bind_param("s", $username);
+
+            if (!$stmt->execute()) {
+                throw new Exception("Failed to delete account: {$stmt->error}");
+            }
+
+            return $stmt->affected_rows > 0;
+        } finally {
+            if ($stmt) {
+                $stmt->close();
+            }
+            if ($conn) {
+                $conn->close();
+            }
+        }
+    }
+    #endregion
+
 
     #region MAPPER
     private function mapSQLResultToUser(array $row): User

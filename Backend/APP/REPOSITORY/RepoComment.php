@@ -255,7 +255,7 @@ class RepoComment
             $stmt->bind_param("sis", $content, $id, $username);
 
             if (!$stmt->execute()) {
-                throw new Exception("Failed to create comment:" . $stmt->error);
+                throw new Exception("Failed to update comment:" . $stmt->error);
             }
 
             return $stmt->affected_rows > 0;
@@ -294,13 +294,22 @@ class RepoComment
 
             $stmt->bind_param("is", $id, $username);
 
-            $success = $stmt->execute();
+            if (!$stmt->execute()) {
+                throw new Exception("Failed to delete  comment:" . $stmt->error);
+            }
             $stmt->close();
 
-            return $success;
+            return $stmt->affected_rows > 0;
 
         } catch (Exception $e) {
-            throw new Exception("Error deleting comment: " . $e->getMessage());
+            throw $e;
+        } finally {
+            if ($stmt) {
+                $stmt->close();
+            }
+            if ($conn) {
+                $conn->close();
+            }
         }
     }
     #endregion
