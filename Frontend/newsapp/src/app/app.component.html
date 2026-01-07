@@ -12,12 +12,14 @@
           <p class="menu-username">@{{ user.username }}</p>
 
           <div class="user-details">
-            <ion-badge color="light" mode="ios">{{ user.role }}</ion-badge>
+            <ion-badge color="light" mode="ios">
+              {{ user.role === 'USER' ? 'Pengguna' : 'Penulis' }}
+            </ion-badge>
             <p class="bio">"{{ user.biography }}"</p>
             
             <p class="country" *ngIf="user.country">
               <ion-icon name="location-outline"></ion-icon> 
-              {{ user.country.name }} (+{{ user.country.telephone }})
+              {{ user.country.name }} ({{ user.country.telephone }})
             </p>
           </div>
         </div>
@@ -52,6 +54,13 @@
           <ion-item routerLink="/favorites" detail="false">
             <ion-icon slot="start" name="heart-outline"></ion-icon>
             <ion-label>Favorit Saya</ion-label>
+          </ion-item>
+        </ion-menu-toggle>
+
+        <ion-menu-toggle auto-hide="false">
+          <ion-item routerLink="/favorites" detail="false">
+            <ion-icon slot="start" name="pencil-outline"></ion-icon>
+            <ion-label>Edit Profile</ion-label>
           </ion-item>
         </ion-menu-toggle>
 

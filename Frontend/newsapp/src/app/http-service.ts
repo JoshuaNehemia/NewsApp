@@ -45,4 +45,24 @@ export class HttpService {
   emitUserLogin(userData: any) {
     this.userSubject.next(userData);
   }
+
+  register_user(userData: any): Observable<any> {
+    const url = BASE_URL + 'register.php';
+    return this.post(url, userData);
+  }
+
+  get_countries(): Observable<any> {
+    const url = BASE_URL + 'get_countries.php';
+    return this.get(url);
+  }
+
+  create_category(categoryData: any): Observable<any> {
+    const url = BASE_URL + 'create_category.php';
+    return this.post(url, categoryData);
+  }
+
+  get_categories(): Observable<any> {
+    const url = BASE_URL + 'get_categories.php';
+    return this.get(url);
+  }
 }

@@ -2,6 +2,7 @@ import { Component } from '@angular/core';
 import { Router } from '@angular/router';
 import { MOCK_CATEGORIES, MOCK_NEWS } from '../mock-data';
 import { News, Category } from '../interface';
+import { HttpService } from '../http-service';
 
 @Component({
   selector: 'app-home',
@@ -10,28 +11,33 @@ import { News, Category } from '../interface';
   standalone: false,
 })
 export class HomePage {
-  categories = MOCK_CATEGORIES;
+  categories: Category[] = [];
   breakingNews: News | undefined;
   recommendations: News[] = [];
 
-  constructor(private router: Router) {}
+  constructor(private router: Router, private http: HttpService) {}
   ngOnInit() {
-    this.loadData();
   }
-  loadData() {
-    // 1. Ambil semua berita (Nanti ini diganti this.httpService.getAllNews())
+  ionViewWillEnter() {
+    this.loadNews();
+    this.loadCategories();
+  }
+  loadCategories() {
+    this.http.get_categories().subscribe(
+      (res: any) => {
+        if (res.status === 'success') {
+          this.categories = res.data;
+        }
+      },
+      (err) => {
+        console.error('Gagal ambil kategori', err);
+      }
+    );
+  }
+  loadNews() {
     const allNews = MOCK_NEWS;
-
     if (allNews.length > 0) {
-      // 2. Berita terbaru (ID 1 di SQL kamu yg 'Alexander') jadi Breaking News
-      // Note: Di SQL ID 1 tanggalnya paling lama, ID 7 paling baru.
-      // Kalau mau Breaking News itu yg "Paling Baru", pakai ID 7.
-      // Tapi kalau mau sesuai urutan insert, pakai index 0.
-
-      // Opsi A: Ambil item pertama array (ID 1)
       this.breakingNews = allNews[0];
-
-      // 3. Sisanya jadi rekomendasi (ID 2 s/d 7)
       this.recommendations = allNews.slice(1);
     }
   }
