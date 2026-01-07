@@ -1,38 +1,48 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams, HttpHeaders } from '@angular/common/http';
-import { Observable } from 'rxjs';
+import { Observable, Subject } from 'rxjs';
+
+const BASE_URL = 'http://localhost/NewsApp/Backend/api/';
 
 @Injectable({
   providedIn: 'root',
 })
-
 export class HttpService {
-
+  public userSubject = new Subject<any>();
   constructor(private http: HttpClient) {}
 
   get<T>(url: string, params?: any, headers?: HttpHeaders): Observable<T> {
-    console.log("Processing HTTP GET Request");
     return this.http.get<T>(url, {
       params: new HttpParams({ fromObject: params }),
-      headers
+      headers,
     });
   }
 
   post<T>(url: string, body: any, headers?: HttpHeaders): Observable<T> {
-    console.log("Processing HTTP POST Request");
     return this.http.post<T>(url, body, { headers });
   }
 
   put<T>(url: string, body: any, headers?: HttpHeaders): Observable<T> {
-    console.log("Processing HTTP PUT Request");
+    console.log('Processing HTTP PUT Request');
     return this.http.put<T>(url, body, { headers });
   }
 
   delete<T>(url: string, params?: any, headers?: HttpHeaders): Observable<T> {
-    console.log("Processing HTTP DELETE Request");
+    console.log('Processing HTTP DELETE Request');
     return this.http.delete<T>(url, {
       params: new HttpParams({ fromObject: params }),
-      headers
+      headers,
     });
+  }
+  login_user(username_input: string, password_input: string): Observable<any> {
+    const full_url = BASE_URL + 'login.php';
+    const data = {
+      username: username_input,
+      password: password_input,
+    };
+    return this.post(full_url, data);
+  }
+  emitUserLogin(userData: any) {
+    this.userSubject.next(userData);
   }
 }
