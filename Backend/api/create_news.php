@@ -106,8 +106,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $repoTag = new RepoTag();
             $repoNewsTag = new RepoNewsTag();
             $processedTags = [];
-
-            // Jika input tags berupa string (misal: "AI, Tech, Future"), ubah jadi array
             if (!is_array($tagsInput)) {
                 $tagsInput = explode(',', $tagsInput);
             }

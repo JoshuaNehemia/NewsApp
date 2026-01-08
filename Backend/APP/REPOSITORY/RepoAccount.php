@@ -184,16 +184,6 @@ class RepoAccount
                 $picExt
             );
 
-            // $stmt->bind_param(
-            //     "ssssss",
-            //     $account->getUsername(),
-            //     $hashedPassword,
-            //     $account->getFullname(),
-            //     $account->getEmail(),
-            //     $account->getRole(),
-            //     $account->getProfilePictureExtension()
-            // );
-
             if (!$stmt->execute()) {
                 throw new Exception("Failed to create account: {$stmt->error}");
             }

@@ -112,9 +112,6 @@ class RepoCategory
 
     public function findCategory(): array
     {
-        // $sql = "SELECT `id, name`
-        //     FROM categories
-        //     ORDER BY ASC;";
         $sql = "SELECT id, name FROM categories ORDER BY name ASC";
         $categories = [];
         try {

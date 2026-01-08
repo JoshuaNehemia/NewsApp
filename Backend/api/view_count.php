@@ -34,7 +34,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $newsId = $_POST['news_id'];
         }
 
-        // Validasi ID
         if (empty($newsId)) {
             http_response_code(400);
             echo json_encode([
@@ -45,8 +44,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         $repo = new RepoNews();
-        
-        // Panggil fungsi increment yang baru kita buat
         if ($repo->incrementViewCount((int)$newsId)) {
             echo json_encode([
                 'status' => 'success',
@@ -54,7 +51,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 'news_id' => $newsId
             ]);
         } else {
-            // Biasanya masuk sini jika ID berita tidak ditemukan di database
             http_response_code(404);
             echo json_encode([
                 'status' => 'error',
@@ -70,7 +66,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         ]);
     }
 } else {
-    http_response_code(405); // Method Not Allowed
+    http_response_code(405);
     echo json_encode([
         'status' => 'error',
         'message' => 'Method request harus POST.'

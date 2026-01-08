@@ -29,7 +29,6 @@ class News
     private Media $media;
     private City $city;
     private $category;
-    //private string $category;
     private int $view_count = 0;
     private int $like_count = 0;
     private int $comment_count = 0;
@@ -196,14 +195,6 @@ class News
         return $this;
     }
 
-    // public function setCategory(string $category): self
-    // {
-    //     if (trim($category) === '') {
-    //         throw new Exception("News category cannot be empty");
-    //     }
-    //     $this->category = $category;
-    //     return $this;
-    // }
     public function setCategory($category): self
     {
         $this->category = $category;
@@ -306,7 +297,6 @@ class News
             'slug' => $this->slug,
             'content' => $this->content,
             'images' => $this->images,
-            //'category' => $this->category,
             'category' => is_object($this->category) ? $this->category->toArray() : $this->category,
             'view_count' => $this->view_count,
             'like_count' => $this->like_count,

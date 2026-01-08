@@ -369,12 +369,9 @@ class RepoNews extends DatabaseConnection
             );
 
             if ($stmt->execute()) {
-                // PERBAIKAN: Kembalikan ID yang baru dibuat (insert_id)
                 return $stmt->insert_id;
             }
             return 0;
-            // $stmt->execute();
-            // return $stmt->affected_rows === 1;
 
         } catch (Exception $e) {
             throw $e;

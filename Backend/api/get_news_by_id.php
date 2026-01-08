@@ -37,8 +37,7 @@ try {
             'data' => $news->toArray()
         ]);
     } else {
-        // Jika berita tidak ditemukan
-        http_response_code(404); // Not Found
+        http_response_code(404);
         echo json_encode([
             'status' => 'error',
             'message' => 'Berita dengan ID tersebut tidak ditemukan.'
