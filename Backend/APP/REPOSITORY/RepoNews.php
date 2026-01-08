@@ -131,6 +131,8 @@ class RepoNews extends DatabaseConnection
 
     public function findNewsByCategoryId(int $categoryId, int $limit = 10, int $offset = 0): array
     {
+        $whereClause = $categoryId > 0 ? "WHERE n.`category_id` = ?" : "";
+        
         $sql = "SELECT
                     n.`id` AS 'news_id',
                     n.`title` AS 'news_title',
@@ -141,6 +143,7 @@ class RepoNews extends DatabaseConnection
                     n.`updated_at` AS 'news_updated_at',
                     
                     (SELECT COUNT(*) FROM likes WHERE news_id = n.id AND is_like = 1) AS 'news_like_count',
+                    (SELECT COUNT(*) FROM comments WHERE news_id = n.id) AS 'news_comment_count', -- Tambahan Count
                     (SELECT COALESCE(AVG(rate), 0) FROM rates WHERE news_id = n.id) AS 'news_rating',
                     (SELECT GROUP_CONCAT(t.name SEPARATOR ',') 
                      FROM news_tags nt 
@@ -190,7 +193,7 @@ class RepoNews extends DatabaseConnection
                     LEFT JOIN `medias` m ON n.`media_id` = m.`id`
                     LEFT JOIN `writers` w ON n.`writer_username` = w.`username`
                     INNER JOIN `accounts` a ON w.`username` = a.`username`
-                WHERE n.`category_id` = ?
+                $whereClause
                 ORDER BY n.created_at DESC
                 LIMIT ? OFFSET ?;";
 
@@ -201,7 +204,13 @@ class RepoNews extends DatabaseConnection
         try {
             $connection = $this->db->connect();
             $stmt = $connection->prepare($sql);
-            $stmt->bind_param("iii", $categoryId, $limit, $offset);
+            
+            if ($categoryId > 0) {
+                $stmt->bind_param("iii", $categoryId, $limit, $offset);
+            } else {
+                $stmt->bind_param("ii", $limit, $offset);
+            }
+            
             $stmt->execute();
             $result = $stmt->get_result();
 
@@ -228,8 +237,8 @@ class RepoNews extends DatabaseConnection
                     n.`view_count` AS 'news_views',
                     n.`created_at` AS 'news_created_at',
                     n.`updated_at` AS 'news_updated_at',
-                    
                     (SELECT COUNT(*) FROM likes WHERE news_id = n.id AND is_like = 1) AS 'news_like_count',
+                    (SELECT COUNT(*) FROM comments WHERE news_id = n.id) AS 'news_comment_count',
                     (SELECT COALESCE(AVG(rate), 0) FROM rates WHERE news_id = n.id) AS 'news_rating',
                     (SELECT GROUP_CONCAT(t.name SEPARATOR ',') 
                      FROM news_tags nt 
@@ -279,6 +288,7 @@ class RepoNews extends DatabaseConnection
                     LEFT JOIN `writers` w ON n.`writer_username` = w.`username`
                     INNER JOIN `accounts` a ON w.`username` = a.`username`
                 WHERE n.`id` = ?;";
+        
         $connection = null;
         $stmt = null;
         try {
@@ -295,24 +305,22 @@ class RepoNews extends DatabaseConnection
             $row = $result->fetch_assoc();
             
             if (!$row) return null;
-
             $news = $this->mapSQLResultToNewsObject($row);
+            $comments = $this->getCommentsByNewsId($id, $connection);
+            $news->setComments($comments);
+
             return $news;
         } catch (Exception $e) {
             throw $e;
         } finally {
-            if ($stmt) {
-                $stmt->close();
-            }
-            if ($connection) {
-                $connection->close();
-            }
+            if ($stmt) $stmt->close();
+            if ($connection) $connection->close();
         }
     }
     #endregion
 
     #region CREATE
-    public function CreateNews(News $news): bool
+    public function CreateNews(News $news): int
     {
         $sql = "INSERT INTO `news` (
                     `writer_username`,
@@ -335,23 +343,38 @@ class RepoNews extends DatabaseConnection
             if (!$stmt) {
                 throw new Exception("Failed to prepare createNews query: " . $connection->error);
             }
-
-            $arr_news = $news->toArray();
-            $mediaId = $arr_news['media']['id'] ?? null;
+            // $arr_news = $news->toArray();
+            // $mediaId = $arr_news['media']['id'] ?? null;
+            // $catId = is_array($arr_news['category']) ? $arr_news['category']['id'] : $arr_news['category'];
+            // $writerUsername = $arr_news['author']['username'] ?? '';
+            // $cityId = $arr_news['city']['id'] ?? 1;
+            $writerUsername = $news->getAuthor()->getUsername();
+            $mediaId        = $news->getMedia()->getId();
+            $cityId         = $news->getCity()->getId();
+            $title          = $news->getTitle();
+            $slug           = $news->getSlug();
+            $content        = $news->getContent();
+            $catRaw = $news->getCategory();
+            $catId  = is_array($catRaw) ? $catRaw['id'] : (is_object($catRaw) ? $catRaw->getId() : $catRaw);
 
             $stmt->bind_param(
                 "siiisss",
-                $arr_news['author']['username'],
+                $writerUsername,
                 $mediaId,
-                $arr_news['category']['id'],
-                $arr_news['city']['id'],
-                $arr_news['title'],
-                $arr_news['slug'],
-                $arr_news['content']
+                $catId,
+                $cityId,
+                $title,
+                $slug,
+                $content
             );
 
-            $stmt->execute();
-            return $stmt->affected_rows === 1;
+            if ($stmt->execute()) {
+                // PERBAIKAN: Kembalikan ID yang baru dibuat (insert_id)
+                return $stmt->insert_id;
+            }
+            return 0;
+            // $stmt->execute();
+            // return $stmt->affected_rows === 1;
 
         } catch (Exception $e) {
             throw $e;
@@ -412,6 +435,32 @@ class RepoNews extends DatabaseConnection
             if ($connection) $connection->close();
         }
     }
+    public function incrementViewCount(int $newsId): bool
+    {
+        $sql = "UPDATE news SET view_count = view_count + 1 WHERE id = ?";
+        
+        $connection = null;
+        $stmt = null;
+
+        try {
+            $connection = $this->db->connect();
+            $stmt = $connection->prepare($sql);
+            
+            if (!$stmt) {
+                throw new Exception("Failed to prepare increment view statement: " . $connection->error);
+            }
+
+            $stmt->bind_param("i", $newsId);
+            $stmt->execute();
+            return $stmt->affected_rows > 0;
+
+        } catch (Exception $e) {
+            throw $e;
+        } finally {
+            if ($stmt) $stmt->close();
+            if ($connection) $connection->close();
+        }
+    }
     #endregion
 
     #region DELETE
@@ -436,6 +485,64 @@ class RepoNews extends DatabaseConnection
         } finally {
             if ($stmt) $stmt->close();
             if ($connection) $connection->close();
+        }
+    }
+    #endregion
+    #region HELPER
+    private function getCommentsByNewsId(int $newsId, $connection = null): array
+    {
+        $sql = "SELECT 
+                    c.id, 
+                    c.content, 
+                    c.created_at, 
+                    c.username,
+                    a.fullname AS user_fullname,
+                    a.profile_picture_ext AS user_pic_ext
+                FROM comments c
+                JOIN accounts a ON c.username = a.username
+                WHERE c.news_id = ?
+                ORDER BY c.created_at DESC";
+
+        $localConnection = false;
+        if ($connection === null) {
+            $connection = $this->db->connect();
+            $localConnection = true;
+        }
+        $stmt = null;
+        $comments = [];
+
+        try {
+            $connection = $this->db->connect();
+            $stmt = $connection->prepare($sql);
+            $stmt->bind_param("i", $newsId);
+            $stmt->execute();
+            $result = $stmt->get_result();
+
+            while ($row = $result->fetch_assoc()) {
+                // Jika null gunakan default
+                $picExt = $row['user_pic_ext'] ?? 'png'; 
+                $picPath = IMAGE_DATABASE_ADDRESS . "USERS/" . $row['username'] . "." . $picExt;
+
+                $comments[] = [
+                    'id' => $row['id'],
+                    'user' => [
+                        'username' => $row['username'],
+                        'name' => $row['user_fullname'],
+                        'avatar' => $picPath
+                    ],
+                    'text' => $row['content'],
+                    'date' => $row['created_at']
+                ];
+            }
+            return $comments;
+
+        } catch (Exception $e) {
+            return [];
+        } finally {
+            if ($stmt) $stmt->close();
+            if ($localConnection && $connection) {
+                $connection->close();
+            }
         }
     }
     #endregion
@@ -495,6 +602,7 @@ class RepoNews extends DatabaseConnection
         $news->setContent($row['news_content']);
         $news->setViewCount((int)$row['news_views']);
         $news->setLikeCount((int)($row['news_like_count'] ?? 0));
+        $news->setCommentCount((int)($row['news_comment_count'] ?? 0));
         $news->setRating((float)($row['news_rating'] ?? 0.0));
         $tagsArray = explode(',', $row['news_tags_string']);
         $news->setTags($tagsArray);

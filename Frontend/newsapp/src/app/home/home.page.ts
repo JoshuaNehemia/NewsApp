@@ -1,8 +1,9 @@
 import { Component } from '@angular/core';
 import { Router } from '@angular/router';
-import { MOCK_CATEGORIES, MOCK_NEWS } from '../mock-data';
-import { News, Category } from '../interface';
+import { NewsAPI, Category } from '../interface';
 import { HttpService } from '../http-service';
+
+
 
 @Component({
   selector: 'app-home',
@@ -12,12 +13,11 @@ import { HttpService } from '../http-service';
 })
 export class HomePage {
   categories: Category[] = [];
-  breakingNews: News | undefined;
-  recommendations: News[] = [];
+  breakingNews: NewsAPI | undefined;
+  recommendations: NewsAPI[] = [];
 
   constructor(private router: Router, private http: HttpService) {}
-  ngOnInit() {
-  }
+  ngOnInit() {}
   ionViewWillEnter() {
     this.loadNews();
     this.loadCategories();
@@ -35,11 +35,24 @@ export class HomePage {
     );
   }
   loadNews() {
-    const allNews = MOCK_NEWS;
-    if (allNews.length > 0) {
-      this.breakingNews = allNews[0];
-      this.recommendations = allNews.slice(1);
-    }
+    this.http.get_news().subscribe(
+      (res: any) => {
+        if (res.status === 'success') {
+          const allNews: NewsAPI[] = res.data;
+
+          if (allNews.length > 0) {
+            // Berita pertama (index 0) jadi Breaking News
+            this.breakingNews = allNews[0];
+
+            // Sisanya jadi Recommendation
+            this.recommendations = allNews.slice(1);
+          }
+        }
+      },
+      (error) => {
+        console.error('Error fetching news:', error);
+      }
+    );
   }
   goToNewsList(categoryId: number, categoryName: string) {
     this.router.navigate(['/news-list', categoryId, categoryName]);

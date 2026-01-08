@@ -9,6 +9,7 @@ import { HttpService } from './http-service';
   standalone: false,
 })
 export class AppComponent {
+  
   user: any = {};
 
   constructor(private router: Router, private httpService: HttpService) {

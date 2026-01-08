@@ -65,4 +65,24 @@ export class HttpService {
     const url = BASE_URL + 'get_categories.php';
     return this.get(url);
   }
+
+  get_news(): Observable<any> {
+    const url = BASE_URL + 'get_news.php';
+    return this.get(url);
+  }
+
+  get_news_detail(id: number): Observable<any> {
+    const url = BASE_URL + 'get_news_by_id.php';
+    return this.get(url, { id: id });
+  }
+
+  add_view(newsId: number): Observable<any> {
+    const url = BASE_URL + 'view_count.php';
+    return this.post(url, { news_id: newsId });
+  }
+
+  like_news(newsId: number): Observable<any> {
+    const url = BASE_URL + 'like_news.php';
+    return this.post(url, { news_id: newsId });
+  }
 }
