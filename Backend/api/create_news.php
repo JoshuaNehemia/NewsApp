@@ -124,18 +124,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         $tagId = $repoTag->findTagIdByNameAndCategory($cleanTagName, (int)$categoryId);
                     }
 
-                    // 3. Sambungkan News dengan Tag di tabel news_tags
                     if ($tagId) {
-                        // Gunakan try-catch khusus insert news_tag untuk menghindari error duplicate entry jika user kirim tag sama 2x
                         try {
                             $repoNewsTag->createNewsTag($newNewsId, $tagId);
                             $processedTags[] = $cleanTagName;
                         } catch (Exception $e) {
-                            // Abaikan error jika tag sudah tertaut ke berita ini (duplicate entry)
                         }
                     }
                 } catch (Exception $e) {
-                    // Lanjut ke tag berikutnya jika ada error pada satu tag
                     continue;
                 }
             }

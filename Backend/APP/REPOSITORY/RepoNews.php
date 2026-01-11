@@ -42,6 +42,7 @@ class RepoNews extends DatabaseConnection
     #region RETRIEVE
     public function findAllNews(int $limit = 10, int $offset = 0): array
     {
+        //   is_like = 0 subquery dislike, dan is_like = 1 subquery like
         $sql = "SELECT
                     n.`id` AS 'news_id',
                     n.`title` AS 'news_title',
@@ -53,6 +54,7 @@ class RepoNews extends DatabaseConnection
                     
                     -- Subqueries untuk Likes, Rating, dan Tags
                     (SELECT COUNT(*) FROM likes WHERE news_id = n.id AND is_like = 1) AS 'news_like_count',
+                    (SELECT COUNT(*) FROM likes WHERE news_id = n.id AND is_like = 0) AS 'news_dislike_count',
                     (SELECT COALESCE(AVG(rate), 0) FROM rates WHERE news_id = n.id) AS 'news_rating',
                     (SELECT GROUP_CONCAT(t.name SEPARATOR ',') 
                      FROM news_tags nt 
@@ -131,8 +133,6 @@ class RepoNews extends DatabaseConnection
 
     public function findNewsByCategoryId(int $categoryId, int $limit = 10, int $offset = 0): array
     {
-        $whereClause = $categoryId > 0 ? "WHERE n.`category_id` = ?" : "";
-        
         $sql = "SELECT
                     n.`id` AS 'news_id',
                     n.`title` AS 'news_title',
@@ -143,7 +143,8 @@ class RepoNews extends DatabaseConnection
                     n.`updated_at` AS 'news_updated_at',
                     
                     (SELECT COUNT(*) FROM likes WHERE news_id = n.id AND is_like = 1) AS 'news_like_count',
-                    (SELECT COUNT(*) FROM comments WHERE news_id = n.id) AS 'news_comment_count', -- Tambahan Count
+                    (SELECT COUNT(*) FROM likes WHERE news_id = n.id AND is_like = 0) AS 'news_dislike_count',
+                    (SELECT COUNT(*) FROM comments WHERE news_id = n.id) AS 'news_comment_count',
                     (SELECT COALESCE(AVG(rate), 0) FROM rates WHERE news_id = n.id) AS 'news_rating',
                     (SELECT GROUP_CONCAT(t.name SEPARATOR ',') 
                      FROM news_tags nt 
@@ -152,7 +153,7 @@ class RepoNews extends DatabaseConnection
 
                     ctg.`id` AS 'category_id',
                     ctg.`name` AS 'category_name',
-                    
+
                     ct.`id` AS 'city_id',
                     ct.`name` AS 'city_name',
                     ct.`latitude` AS 'city_latitude',
@@ -160,7 +161,6 @@ class RepoNews extends DatabaseConnection
                     
                     cd.`id` AS 'country_division_id',
                     cd.`name` AS 'country_division_name',
-                    
                     cm.`id` AS 'country_id',
                     cm.`name` AS 'country_name',
                     cm.`code` AS 'country_code',
@@ -193,7 +193,7 @@ class RepoNews extends DatabaseConnection
                     LEFT JOIN `medias` m ON n.`media_id` = m.`id`
                     LEFT JOIN `writers` w ON n.`writer_username` = w.`username`
                     INNER JOIN `accounts` a ON w.`username` = a.`username`
-                $whereClause
+                WHERE n.`category_id` = ?
                 ORDER BY n.created_at DESC
                 LIMIT ? OFFSET ?;";
 
@@ -205,11 +205,11 @@ class RepoNews extends DatabaseConnection
             $connection = $this->db->connect();
             $stmt = $connection->prepare($sql);
             
-            if ($categoryId > 0) {
-                $stmt->bind_param("iii", $categoryId, $limit, $offset);
-            } else {
-                $stmt->bind_param("ii", $limit, $offset);
+            if (!$stmt) {
+                throw new Exception("Failed to prepare findNewsByCategory query: " . $connection->error);
             }
+
+            $stmt->bind_param("iii", $categoryId, $limit, $offset);
             
             $stmt->execute();
             $result = $stmt->get_result();
@@ -238,6 +238,7 @@ class RepoNews extends DatabaseConnection
                     n.`created_at` AS 'news_created_at',
                     n.`updated_at` AS 'news_updated_at',
                     (SELECT COUNT(*) FROM likes WHERE news_id = n.id AND is_like = 1) AS 'news_like_count',
+                    (SELECT COUNT(*) FROM likes WHERE news_id = n.id AND is_like = 0) AS 'news_dislike_count',
                     (SELECT COUNT(*) FROM comments WHERE news_id = n.id) AS 'news_comment_count',
                     (SELECT COALESCE(AVG(rate), 0) FROM rates WHERE news_id = n.id) AS 'news_rating',
                     (SELECT GROUP_CONCAT(t.name SEPARATOR ',') 
@@ -343,11 +344,6 @@ class RepoNews extends DatabaseConnection
             if (!$stmt) {
                 throw new Exception("Failed to prepare createNews query: " . $connection->error);
             }
-            // $arr_news = $news->toArray();
-            // $mediaId = $arr_news['media']['id'] ?? null;
-            // $catId = is_array($arr_news['category']) ? $arr_news['category']['id'] : $arr_news['category'];
-            // $writerUsername = $arr_news['author']['username'] ?? '';
-            // $cityId = $arr_news['city']['id'] ?? 1;
             $writerUsername = $news->getAuthor()->getUsername();
             $mediaId        = $news->getMedia()->getId();
             $cityId         = $news->getCity()->getId();
@@ -485,6 +481,7 @@ class RepoNews extends DatabaseConnection
         }
     }
     #endregion
+    
     #region HELPER
     private function getCommentsByNewsId(int $newsId, $connection = null): array
     {
@@ -599,6 +596,7 @@ class RepoNews extends DatabaseConnection
         $news->setContent($row['news_content']);
         $news->setViewCount((int)$row['news_views']);
         $news->setLikeCount((int)($row['news_like_count'] ?? 0));
+        $news->setDislikeCount((int)($row['news_dislike_count'] ?? 0));
         $news->setCommentCount((int)($row['news_comment_count'] ?? 0));
         $news->setRating((float)($row['news_rating'] ?? 0.0));
         $tagsArray = explode(',', $row['news_tags_string']);
@@ -636,3 +634,4 @@ class RepoNews extends DatabaseConnection
     }
     #endregion
 }
+?>

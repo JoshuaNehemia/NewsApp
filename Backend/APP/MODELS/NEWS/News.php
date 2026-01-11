@@ -31,6 +31,7 @@ class News
     private $category;
     private int $view_count = 0;
     private int $like_count = 0;
+    private int $dislike_count = 0;
     private int $comment_count = 0;
     private array $comments = [];
     private array $tags = [];
@@ -95,6 +96,10 @@ class News
     public function getLikeCount(): int
     {
         return $this->like_count;
+    }
+    public function getDislikeCount(): int
+    {
+        return $this->dislike_count;
     }
     public function getCommentCount(): int 
     { 
@@ -218,6 +223,14 @@ class News
         $this->like_count = $like_count;
         return $this;
     }
+    public function setDislikeCount(int $dislike_count): self
+    {
+        if ($dislike_count < 0) {
+            throw new Exception("News Dislike count cannot be negative");
+        }
+        $this->dislike_count = $dislike_count;
+        return $this;
+    }
 
     public function setCommentCount(int $comment_count): self {
         if ($comment_count < 0) throw new Exception("Comment count cannot be negative");
@@ -300,6 +313,7 @@ class News
             'category' => is_object($this->category) ? $this->category->toArray() : $this->category,
             'view_count' => $this->view_count,
             'like_count' => $this->like_count,
+            'dislike_count' => $this->dislike_count,
             'comment_count' => $this->comment_count,
             'comments' => $this->comments,
             'rating' => $this->rating,

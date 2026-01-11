@@ -39,6 +39,13 @@
         </ion-menu-toggle>
 
         <ion-menu-toggle auto-hide="false" *ngIf="user.role !== 'USER'">
+          <ion-item [routerLink]="['/news-list', { mode: 'my-news' }]" detail="false">
+            <ion-icon slot="start" name="documents-outline"></ion-icon>
+            <ion-label>Berita Saya</ion-label>
+          </ion-item>
+        </ion-menu-toggle>
+
+        <ion-menu-toggle auto-hide="false" *ngIf="user.role !== 'USER'">
           <ion-item routerLink="/create-news" detail="false">
             <ion-icon slot="start" name="newspaper-outline"></ion-icon>
             <ion-label>Buat Berita Baru</ion-label>
@@ -52,7 +59,7 @@
           </ion-item>
         </ion-menu-toggle>
 
-        <ion-menu-toggle auto-hide="false">
+        <ion-menu-toggle auto-hide="false" *ngIf="user.role !== 'WRITER'">
           <ion-item routerLink="/favorites" detail="false">
             <ion-icon slot="start" name="heart-outline"></ion-icon>
             <ion-label>Favorit Saya</ion-label>

@@ -9,10 +9,12 @@ header("Access-Control-Allow-Headers: Content-Type, Access-Control-Allow-Headers
 #region REQUIRE
 require_once '../APP/config.php';
 require_once '../APP/REPOSITORY/RepoNews.php';
+require_once '../APP/REPOSITORY/RepoLike.php';
 #endregion
 
 #region USE
 use REPOSITORY\RepoNews;
+use REPOSITORY\RepoLike;
 #endregion
 
 #region LOGIC
@@ -27,14 +29,27 @@ try {
     }
 
     $id = (int)$_GET['id'];
+    $username = isset($_GET['username']) ? trim($_GET['username']) : '';
     $repo = new RepoNews();
+    $repoLike = new RepoLike();
     $news = $repo->findNewsById($id);
 
-    // 3. Cek hasil
     if ($news) {
+        $newsData = $news->toArray();
+        $stats = $repoLike->getLikeStats($id);
+        
+        $userStatus = 0;
+        if (!empty($username)) {
+            $userStatus = $repoLike->getUserLikeStatus($id, $username);
+        }
+        $newsData['like_count'] = isset($stats['likes']) ? $stats['likes'] : 0;
+        $newsData['dislike_count'] = isset($stats['dislikes']) ? $stats['dislikes'] : 0;
+        
+        $newsData['user_status'] = $userStatus;
+
         echo json_encode([
             'status' => 'success',
-            'data' => $news->toArray()
+            'data' => $newsData
         ]);
     } else {
         http_response_code(404);

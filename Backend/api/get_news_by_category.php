@@ -14,7 +14,7 @@ try {
         http_response_code(400);
         echo json_encode([
             'status' => 'error', 
-            'message' => 'category_id tidak ditemukan'
+            'message' => 'Parameter category_id diperlukan'
         ]);
         exit();
     }

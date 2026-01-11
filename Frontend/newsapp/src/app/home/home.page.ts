@@ -41,10 +41,7 @@ export class HomePage {
           const allNews: NewsAPI[] = res.data;
 
           if (allNews.length > 0) {
-            // Berita pertama (index 0) jadi Breaking News
             this.breakingNews = allNews[0];
-
-            // Sisanya jadi Recommendation
             this.recommendations = allNews.slice(1);
           }
         }

@@ -17,9 +17,6 @@ include_once '../APP/config.php';
 include_once '../APP/MODELS/CORE/DatabaseConnection.php';
 include_once '../APP/REPOSITORY/RepoLike.php';
 
-$database = new MODELS\CORE\DatabaseConnection();
-$db = $database->connect();
-
 use REPOSITORY\RepoLike;
 $repoLike = new RepoLike();
 
@@ -29,13 +26,12 @@ if (!empty($data->news_id) && !empty($data->username)) {
     try {
         $newsId = $data->news_id;
         $username = $data->username;
-        $repoLike->toggleLike((int)$newsId, $username);
+        $repoLike->toggleDislike((int)$newsId, $username);
         $stats = $repoLike->getLikeStats((int)$newsId);
         $userStatus = $repoLike->getUserLikeStatus((int)$newsId, $username);
-
         echo json_encode([
             'status' => 'success',
-            'message' => 'Like status updated',
+            'message' => 'Dislike status updated',
             'data' => [
                 'user_status' => $userStatus,
                 'stats' => [
@@ -50,9 +46,6 @@ if (!empty($data->news_id) && !empty($data->username)) {
     }
 } else {
     http_response_code(400);
-    echo json_encode([
-        'status' => 'error',
-        'message' => 'Incomplete data. JSON input required.'
-    ]);
+    echo json_encode(['status' => 'error', 'message' => 'Incomplete data']);
 }
 ?>

@@ -27,7 +27,7 @@ export class CreateCategoryPage implements OnInit {
       (res: any) => {
         if (res.status === 'success') {
           this.showToast('Kategori berhasil dibuat!', 'success');
-          this.categoryName = ''; // Reset form
+          this.categoryName = ''; 
         } else {
           this.showToast('Gagal: ' + res.message, 'danger');
         }

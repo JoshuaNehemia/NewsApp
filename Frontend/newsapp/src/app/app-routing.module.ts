@@ -59,6 +59,10 @@ const routes: Routes = [
     loadChildren: () =>
       import('./search/search.module').then((m) => m.SearchPageModule),
   },
+  {
+    path: 'register-writer',
+    loadChildren: () => import('./register-writer/register-writer.module').then( m => m.RegisterWriterPageModule)
+  },
 ];
 
 @NgModule({

@@ -38,10 +38,23 @@
         <ion-icon name="eye-outline"></ion-icon>
         <span>{{ article.view_count }}</span>
     </div>
-    <div class="stat-item" (click)="likeNews()">
-        <ion-icon [name]="article.isFavorite ? 'heart' : 'heart-outline'" [color]="article.isFavorite ? 'danger' : 'medium'"></ion-icon>
+
+    <div class="stat-item" (click)="toggleLike()">
+        <ion-icon 
+          [name]="article.user_status === 1 ? 'heart' : 'heart-outline'" 
+          [color]="article.user_status === 1 ? 'danger' : 'medium'">
+        </ion-icon>
         <span>{{ article.like_count }}</span>
     </div>
+
+    <div class="stat-item" (click)="toggleDislike()">
+        <ion-icon 
+          [name]="article.user_status === 0 ? 'thumbs-down' : 'thumbs-down-outline'" 
+          [color]="article.user_status === 0 ? 'primary' : 'medium'">
+        </ion-icon>
+        <span>{{ article.dislike_count || 0 }}</span>
+    </div>
+
     <div class="stat-item">
         <ion-icon name="chatbubble-outline"></ion-icon>
         <span>{{ article.comment_count }}</span>
