@@ -61,7 +61,7 @@ export class HttpService {
 
   //#region GET DATA
   getMedias() {
-    const url = BASE_URL + '/get_medias.php';
+    const url = BASE_URL + 'get_media.php';
     return this.get(url);
   }
   get_categories(): Observable<any> {

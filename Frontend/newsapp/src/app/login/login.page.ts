@@ -17,7 +17,7 @@ export class LoginPage implements OnInit {
     private http: HttpService,
     private router: Router,
     private toastCtrl: ToastController,
-    private alertCtrl: AlertController
+    private alertController: AlertController
   ) {}
 
   ngOnInit() {}
@@ -34,7 +34,7 @@ export class LoginPage implements OnInit {
     });
   }
   async showRegisterOptions() {
-    const alert = await this.alertCtrl.create({
+    const alert = await this.alertController.create({
       header: 'Daftar Sebagai',
       message: 'Pilih jenis akun yang ingin Anda buat.',
       buttons: [
@@ -47,6 +47,34 @@ export class LoginPage implements OnInit {
         {
           text: 'Penulis (Writer)',
           handler: () => {
+            this.router.navigate(['/register-writer']);
+          },
+        },
+        {
+          text: 'Batal',
+          role: 'cancel',
+        },
+      ],
+    });
+
+    await alert.present();
+  }
+  async presentRegisterAlert() {
+    const alert = await this.alertController.create({
+      header: 'Pilih Tipe Akun',
+      message: 'Anda ingin mendaftar sebagai?',
+      buttons: [
+        {
+          text: 'User (Pembaca)',
+          handler: () => {
+            // Arahkan ke halaman register user biasa
+            this.router.navigate(['/register']);
+          },
+        },
+        {
+          text: 'Writer (Penulis)',
+          handler: () => {
+            // Arahkan ke halaman register writer
             this.router.navigate(['/register-writer']);
           },
         },
