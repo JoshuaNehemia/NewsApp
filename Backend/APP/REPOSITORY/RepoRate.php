@@ -12,14 +12,11 @@ use Exception;
 
 class RepoRate
 {
-    #region FIELDS
-    private DatabaseConnection $db;
-    #endregion
-
     #region CONSTRUCTOR
     public function __construct()
     {
-        $this->db = new DatabaseConnection();
+        // No longer storing DatabaseConnection as field
+        // Each method will create its own connection
     }
     #endregion
 
@@ -30,14 +27,15 @@ class RepoRate
             throw new Exception("Rating must be between 1 and 5");
         }
 
-        $sql = "INSERT INTO rates (news_id, username, rating)
+        $sql = "INSERT INTO rates (news_id, username, rate)
             VALUES (?, ?, ?);";
 
         $conn = null;
         $stmt = null;
 
         try {
-            $conn = $this->db->connect();
+            $db = new DatabaseConnection();
+            $conn = $db->connect();
             $stmt = $conn->prepare($sql);
 
             if (!$stmt) {
@@ -80,7 +78,8 @@ class RepoRate
         $stmt = null;
 
         try {
-            $conn = $this->db->connect();
+            $db = new DatabaseConnection();
+            $conn = $db->connect();
             $stmt = $conn->prepare($sql);
 
             if (!$stmt) {
@@ -118,14 +117,15 @@ class RepoRate
         }
 
         $sql = "UPDATE rates
-            SET rating = ?
+            SET rate = ?
             WHERE news_id = ? AND username = ?;";
 
         $conn = null;
         $stmt = null;
 
         try {
-            $conn = $this->db->connect();
+            $db = new DatabaseConnection();
+            $conn = $db->connect();
             $stmt = $conn->prepare($sql);
 
             if (!$stmt) {
@@ -155,6 +155,99 @@ class RepoRate
             }
         }
     }
+    /**
+     * Get user's specific rating for a news article
+     */
+    public function getUserRate(int $newsId, string $username): ?float
+    {
+        $sql = "SELECT rate
+            FROM rates
+            WHERE news_id = ? AND username = ?
+            LIMIT 1;";
+
+        $conn = null;
+        $stmt = null;
+
+        try {
+            $db = new DatabaseConnection();
+            $conn = $db->connect();
+            $stmt = $conn->prepare($sql);
+
+            if (!$stmt) {
+                throw new Exception("Failed to prepare getUserRate statement");
+            }
+
+            $news_id = $newsId;
+            $user = $username;
+
+            $stmt->bind_param("is", $news_id, $user);
+
+            if (!$stmt->execute()) {
+                throw new Exception("Failed to get user rate: " . $stmt->error);
+            }
+
+            $result = $stmt->get_result();
+            if ($row = $result->fetch_assoc()) {
+                return (float) $row['rate'];
+            }
+            return null;
+
+        } catch (Exception $e) {
+            throw $e;
+        } finally {
+            if ($stmt) {
+                $stmt->close();
+            }
+            if ($conn) {
+                $conn->close();
+            }
+        }
+    }
+
+    /**
+     * Get the total number of ratings for a news article
+     */
+    public function getRatingCount(int $newsId): int
+    {
+        $sql = "SELECT COUNT(*) as count
+            FROM rates
+            WHERE news_id = ?;";
+
+        $conn = null;
+        $stmt = null;
+
+        try {
+            $db = new DatabaseConnection();
+            $conn = $db->connect();
+            $stmt = $conn->prepare($sql);
+
+            if (!$stmt) {
+                throw new Exception("Failed to prepare getRatingCount statement");
+            }
+
+            $news_id = $newsId;
+            $stmt->bind_param("i", $news_id);
+
+            if (!$stmt->execute()) {
+                throw new Exception("Failed to get rating count: " . $stmt->error);
+            }
+
+            $result = $stmt->get_result();
+            $row = $result->fetch_assoc();
+
+            return (int)$row['count'];
+
+        } catch (Exception $e) {
+            throw $e;
+        } finally {
+            if ($stmt) {
+                $stmt->close();
+            }
+            if ($conn) {
+                $conn->close();
+            }
+        }
+    }
     #endregion
 
     #region DELETE
@@ -167,7 +260,8 @@ class RepoRate
         $stmt = null;
 
         try {
-            $conn = $this->db->connect();
+            $db = new DatabaseConnection();
+            $conn = $db->connect();
             $stmt = $conn->prepare($sql);
 
             if (!$stmt) {

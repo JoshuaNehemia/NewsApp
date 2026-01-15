@@ -149,6 +149,48 @@ class RepoAccount
     }
     #endregion
 
+    #region CHECK DUPLICATE
+    public function findAccountByUsername(string $username): ?Account
+    {
+        $sql = "SELECT username FROM accounts WHERE username = ? LIMIT 1";
+        try {
+            $connection = $this->db->connect();
+            $stmt = $connection->prepare($sql);
+            if (!$stmt) {
+                throw new Exception($connection->error);
+            }
+            $stmt->bind_param("s", $username);
+            $stmt->execute();
+            $result = $stmt->get_result();
+            $row = $result->fetch_assoc();
+            $stmt->close();
+            return $row ? new Account() : null;
+        } catch (Exception $e) {
+            throw $e;
+        }
+    }
+
+    public function findAccountByEmail(string $email): ?Account
+    {
+        $sql = "SELECT username FROM accounts WHERE email = ? LIMIT 1";
+        try {
+            $connection = $this->db->connect();
+            $stmt = $connection->prepare($sql);
+            if (!$stmt) {
+                throw new Exception($connection->error);
+            }
+            $stmt->bind_param("s", $email);
+            $stmt->execute();
+            $result = $stmt->get_result();
+            $row = $result->fetch_assoc();
+            $stmt->close();
+            return $row ? new Account() : null;
+        } catch (Exception $e) {
+            throw $e;
+        }
+    }
+    #endregion
+
     #region CREATE ACCOUNT
     private function createAccount(Account $account, string $hashedPassword, $conn): bool
     {
@@ -232,8 +274,6 @@ class RepoAccount
             $countryId = null;
             if ($user->getCountry()) {
                 $countryId = $user->getCountry()->getId();
-            } else {
-                 throw new Exception("Country data is missing for user creation");
             }
 
             $stmt->bind_param(
@@ -519,7 +559,7 @@ class RepoAccount
         $user->setUsername($row['username']);
         $user->setFullname($row['fullname']);
         $user->setEmail($row['email']);
-        $user->setRole($row['role']);
+        $user->setRole(strtoupper($row['role']));
         if (!empty($row['profile_picture_ext'])) {
             $fullPath = IMAGE_DATABASE_ADDRESS . "USERS/" . $row['username'] . "." . $row['profile_picture_ext'];
             $user->setProfilePictureAddress($fullPath);
@@ -572,7 +612,7 @@ class RepoAccount
         $writer->setUsername($row['username']);
         $writer->setFullname($row['fullname']);
         $writer->setEmail($row['email']);
-        $writer->setRole($row['role']);
+        $writer->setRole(strtoupper($row['role']));
        if (!empty($row['profile_picture_ext'])) {
             $fullPath = IMAGE_DATABASE_ADDRESS . "WRITER/" . $row['username'] . "." . $row['profile_picture_ext'];
             $writer->setProfilePictureAddress($fullPath); 

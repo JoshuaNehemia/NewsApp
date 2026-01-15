@@ -16,9 +16,9 @@ use Exception;
 class Writer extends Account
 {
     #region FIELDS
-    private Media $media;
-    private string $biography;
-    private bool $is_verified;
+    private Media|null $media = null;
+    private string $biography = '';
+    private bool $is_verified = false;
     #endregion
 
     #region CONSTRUCTOR

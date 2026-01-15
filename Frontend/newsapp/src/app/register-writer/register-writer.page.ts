@@ -57,8 +57,15 @@ export class RegisterWriterPage implements OnInit {
           this.showToast('Gagal: ' + res.message);
         }
       },
-      (err) => {
-        this.showToast('Terjadi kesalahan koneksi');
+      (err: any) => {
+        // Try to get error message from response
+        let errorMessage = 'Terjadi kesalahan koneksi';
+        if (err.error && err.error.message) {
+          errorMessage = err.error.message;
+        } else if (err.message) {
+          errorMessage = err.message;
+        }
+        this.showToast(errorMessage);
       }
     );
   }

@@ -1,8 +1,14 @@
 <?php
 header("Access-Control-Allow-Origin: *");
 header("Content-Type: application/json; charset=UTF-8");
-header("Access-Control-Allow-Methods: POST");
+header("Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS");
 header("Access-Control-Allow-Headers: Content-Type, Access-Control-Allow-Headers, Authorization, X-Requested-With");
+
+// Handle preflight request
+if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
+    http_response_code(200);
+    exit;
+}
 
 require_once '../APP/config.php';
 require_once '../APP/MODELS/ACCOUNT/User.php';
@@ -17,16 +23,26 @@ use REPOSITORY\RepoCountry;
 
 $input = json_decode(file_get_contents('php://input'), true);
 
-function sendResponse($status, $message, $data = null) {
-    echo json_encode([
-        'status' => $status,
-        'message' => $message,
-        'data' => $data
-    ]);
-    exit;
-}
-
 try {
+    // Check if username or email already exists
+    $repo = new RepoAccount();
+    if ($repo->findAccountByUsername($input['username'] ?? '')) {
+        http_response_code(400);
+        echo json_encode([
+            'status' => 'error',
+            'message' => "Username sudah terdaftar!"
+        ]);
+        exit;
+    }
+    if ($repo->findAccountByEmail($input['email'] ?? '')) {
+        http_response_code(400);
+        echo json_encode([
+            'status' => 'error',
+            'message' => "Email sudah terdaftar!"
+        ]);
+        exit;
+    }
+
     $user = new User();
     if (isset($input['username'])) $user->setUsername($input['username']);
     if (isset($input['fullname'])) $user->setFullname($input['fullname']);
@@ -38,31 +54,49 @@ try {
     if (isset($input['phone_number'])) $user->setPhoneNumber($input['phone_number']);
     if (isset($input['gender'])) $user->setGender($input['gender']);
     if (isset($input['biography'])) $user->setBiography($input['biography']);
-    if (isset($input['country_id'])) {
+    if (!empty($input['country_id']) && $input['country_id'] !== null) {
         $repoCountry = new RepoCountry();
         $foundCountry = $repoCountry->findCountryById((int)$input['country_id']);
         if ($foundCountry) {
             $user->setCountry($foundCountry);
         } else {
-            throw new Exception("Country ID " . $input['country_id'] . " Not Found");
+            http_response_code(400);
+            echo json_encode([
+                'status' => 'error',
+                'message' => "Country ID " . $input['country_id'] . " Not Found"
+            ]);
+            exit;
         }
-    } else {
-        throw new Exception("Country ID should field!");
     }
 
     if (empty($input['password'])) {
-        throw new Exception("Password cannot be empty");
+        http_response_code(400);
+        echo json_encode([
+            'status' => 'error',
+            'message' => "Password cannot be empty"
+        ]);
+        exit;
     }
     $hashedPassword = password_hash($input['password'], PASSWORD_DEFAULT);
     $repo = new RepoAccount();
     if ($repo->createUser($user, $hashedPassword)) {
-        sendResponse('success', 'User berhasil didaftarkan', $user->toArray());
+        echo json_encode([
+            'status' => 'success',
+            'message' => 'User berhasil didaftarkan',
+            'data' => $user->toArray()
+        ]);
     } else {
-        sendResponse('error', 'Gagal mendaftarkan user (mungkin username/email duplikat)');
+        http_response_code(400);
+        echo json_encode([
+            'status' => 'error',
+            'message' => 'Gagal mendaftarkan user (mungkin username/email duplikat)'
+        ]);
     }
 
 } catch (Exception $e) {
     http_response_code(400);
-    sendResponse('error', $e->getMessage());
+    echo json_encode([
+        'status' => 'error',
+        'message' => $e->getMessage()
+    ]);
 }
-?>

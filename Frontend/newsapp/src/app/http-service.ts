@@ -1,15 +1,18 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams, HttpHeaders } from '@angular/common/http';
 import { Observable, Subject } from 'rxjs';
+import { environment } from '../environments/environment';
 
-const BASE_URL = 'http://localhost/NewsApp/Backend/api/';
+const BASE_URL = environment.apiUrl;
 
 @Injectable({
   providedIn: 'root',
 })
 export class HttpService {
   public userSubject = new Subject<any>();
-  constructor(private http: HttpClient) {}
+  public favoritesChanged = new Subject<any>(); // New subject for favorites changes
+
+  constructor(private http: HttpClient) { }
 
   get<T>(url: string, params?: any, headers?: HttpHeaders): Observable<T> {
     return this.http.get<T>(url, {
@@ -117,9 +120,48 @@ export class HttpService {
     const url = BASE_URL + 'dislike_news.php';
     return this.post(url, { news_id: newsId, username: username });
   }
-  delete_news(newsId: number): Observable<any> {
+
+  emitFavoritesChanged(data: any) {
+    this.favoritesChanged.next(data);
+  }
+
+  get_user_favorites(username: string): Observable<any> {
+    const url = BASE_URL + 'get_user_favorites.php';
+    return this.get(url, { username: username });
+  }
+
+  add_comment(newsId: number, username: string, content: string, replyToId?: number): Observable<any> {
+    const url = BASE_URL + 'add_comment.php';
+    const body: any = { news_id: newsId, username: username, content: content };
+    if (replyToId) {
+      body.reply_to_id = replyToId;
+    }
+    return this.post(url, body);
+  }
+
+  get_comments(newsId: number): Observable<any> {
+    const url = BASE_URL + 'get_comments.php';
+    return this.get(url, { news_id: newsId });
+  }
+
+  add_rating(newsId: number, username: string, rate: number): Observable<any> {
+    const url = BASE_URL + 'add_rating.php';
+    return this.post(url, { news_id: newsId, username: username, rate: rate });
+  }
+
+  search_news(query: string, limit: number = 20): Observable<any> {
+    const url = BASE_URL + 'search_news.php';
+    return this.get(url, { query: query, limit: limit });
+  }
+
+  delete_news(newsId: number, username: string): Observable<any> {
     const url = BASE_URL + 'delete_news.php';
-    return this.post(url, { news_id: newsId });
+    // PHP receives JSON body for POST, but 'delete' method usually sends params in URL or body.
+    // My PHP script reads file_get_contents("php://input") (body).
+    // HttpClient.delete supports body in options, but 'post' is safer for compatibility if server expects POST.
+    // The PHP header says Access-Control-Allow-Methods: POST (I set it in delete_news.php).
+    // So I should use POST.
+    return this.post(url, { news_id: newsId, username: username });
   }
   //#endregion
 }

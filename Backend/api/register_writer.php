@@ -1,8 +1,17 @@
 <?php
+error_reporting(E_ALL);
+ini_set('display_errors', 1);
+
 header("Access-Control-Allow-Origin: *");
 header("Content-Type: application/json; charset=UTF-8");
-header("Access-Control-Allow-Methods: POST");
+header("Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS");
 header("Access-Control-Allow-Headers: Content-Type, Access-Control-Allow-Headers, Authorization, X-Requested-With");
+
+// Handle preflight request
+if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
+    http_response_code(200);
+    exit;
+}
 
 require_once '../APP/config.php';
 require_once '../APP/MODELS/ACCOUNT/Writer.php';
@@ -22,6 +31,15 @@ $input = json_decode(file_get_contents('php://input'), true);
 try {
     if (empty($input['username']) || empty($input['password']) || empty($input['email']) || empty($input['media_id'])) {
         throw new Exception("Data tidak lengkap (Username, Password, Email, Media ID wajib diisi)");
+    }
+
+    // Check if username or email already exists
+    $repo = new RepoAccount();
+    if ($repo->findAccountByUsername($input['username'])) {
+        throw new Exception("Username sudah terdaftar!");
+    }
+    if ($repo->findAccountByEmail($input['email'])) {
+        throw new Exception("Email sudah terdaftar!");
     }
 
     $writer = new Writer();
@@ -56,10 +74,22 @@ try {
     }
 
 } catch (Exception $e) {
-    http_response_code(400);
+    http_response_code(500);
     echo json_encode([
         'status' => 'error',
-        'message' => $e->getMessage()
+        'message' => $e->getMessage(),
+        'file' => $e->getFile(),
+        'line' => $e->getLine(),
+        'trace' => $e->getTraceAsString()
+    ]);
+} catch (Error $e) {
+    http_response_code(500);
+    echo json_encode([
+        'status' => 'error',
+        'type' => 'Fatal Error',
+        'message' => $e->getMessage(),
+        'file' => $e->getFile(),
+        'line' => $e->getLine()
     ]);
 }
 ?>
