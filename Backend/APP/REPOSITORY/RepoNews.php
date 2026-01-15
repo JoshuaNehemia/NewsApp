@@ -56,10 +56,15 @@ class RepoNews extends DatabaseConnection
                     (SELECT COUNT(*) FROM likes WHERE news_id = n.id AND is_like = 1) AS 'news_like_count',
                     (SELECT COUNT(*) FROM likes WHERE news_id = n.id AND is_like = 0) AS 'news_dislike_count',
                     (SELECT COALESCE(AVG(rate), 0) FROM rates WHERE news_id = n.id) AS 'news_rating',
+                    (SELECT COUNT(*) FROM rates WHERE news_id = n.id) AS 'news_rating_count',
                     (SELECT GROUP_CONCAT(t.name SEPARATOR ',') 
                      FROM news_tags nt 
                      JOIN tags t ON nt.tags_id = t.id 
                      WHERE nt.news_id = n.id) AS 'news_tags_string',
+                    (SELECT GROUP_CONCAT(c.name SEPARATOR ',') 
+                     FROM news_categories nc 
+                     JOIN categories c ON nc.category_id = c.id 
+                     WHERE nc.news_id = n.id) AS 'news_categories_names',
 
                     ctg.`id` AS 'category_id',
                     ctg.`name` AS 'category_name',
@@ -119,7 +124,10 @@ class RepoNews extends DatabaseConnection
             $result = $stmt->get_result();
 
             while ($row = $result->fetch_assoc()) {
-                $newsList[] = $this->mapSQLResultToNewsObject($row)->toArray();
+                $newsArray = $this->mapSQLResultToNewsObject($row)->toArray();
+                // Manually add rating_count since News model doesn't have this property
+                $newsArray['rating_count'] = (int)($row['news_rating_count'] ?? 0);
+                $newsList[] = $newsArray;
             }
 
             return $newsList;
@@ -146,10 +154,15 @@ class RepoNews extends DatabaseConnection
                     (SELECT COUNT(*) FROM likes WHERE news_id = n.id AND is_like = 0) AS 'news_dislike_count',
                     (SELECT COUNT(*) FROM comments WHERE news_id = n.id) AS 'news_comment_count',
                     (SELECT COALESCE(AVG(rate), 0) FROM rates WHERE news_id = n.id) AS 'news_rating',
+                    (SELECT COUNT(*) FROM rates WHERE news_id = n.id) AS 'news_rating_count',
                     (SELECT GROUP_CONCAT(t.name SEPARATOR ',') 
                      FROM news_tags nt 
                      JOIN tags t ON nt.tags_id = t.id 
                      WHERE nt.news_id = n.id) AS 'news_tags_string',
+                    (SELECT GROUP_CONCAT(c_sub.name SEPARATOR ',') 
+                     FROM news_categories nc_sub 
+                     JOIN categories c_sub ON nc_sub.category_id = c_sub.id 
+                     WHERE nc_sub.news_id = n.id) AS 'news_categories_names',
 
                     ctg.`id` AS 'category_id',
                     ctg.`name` AS 'category_name',
@@ -186,14 +199,18 @@ class RepoNews extends DatabaseConnection
                     a.`profile_picture_ext` AS 'writer_profile_picture_ext'
                 FROM
                     news n
-                    INNER JOIN `categories` ctg ON n.`category_id` = ctg.`id`
+                    -- Use news_categories for filtering, but keep n.category_id for primary category display info if needed
+                    -- However, usually we want to see the category we filtered by.
+                    -- Let's JOIN news_categories to filter, and JOIN categories for display.
+                    INNER JOIN news_categories nc ON n.id = nc.news_id
+                    INNER JOIN categories ctg ON nc.category_id = ctg.id
                     LEFT JOIN `cities` ct ON n.`city_id` = ct.`id`
                     LEFT JOIN `country_divisions` cd ON ct.`country_division_id` = cd.`id`
                     LEFT JOIN `countries` cm ON cd.`country_id` = cm.`id`
                     LEFT JOIN `medias` m ON n.`media_id` = m.`id`
                     LEFT JOIN `writers` w ON n.`writer_username` = w.`username`
                     INNER JOIN `accounts` a ON w.`username` = a.`username`
-                WHERE n.`category_id` = ?
+                WHERE nc.`category_id` = ?
                 ORDER BY n.created_at DESC
                 LIMIT ? OFFSET ?;";
 
@@ -215,7 +232,9 @@ class RepoNews extends DatabaseConnection
             $result = $stmt->get_result();
 
             while ($row = $result->fetch_assoc()) {
-                $newsList[] = $this->mapSQLResultToNewsObject($row)->toArray();
+                $newsArray = $this->mapSQLResultToNewsObject($row)->toArray();
+                $newsArray['rating_count'] = (int)($row['news_rating_count'] ?? 0);
+                $newsList[] = $newsArray;
             }
 
             return $newsList;
@@ -245,6 +264,10 @@ class RepoNews extends DatabaseConnection
                      FROM news_tags nt 
                      JOIN tags t ON nt.tags_id = t.id 
                      WHERE nt.news_id = n.id) AS 'news_tags_string',
+                    (SELECT GROUP_CONCAT(c.name SEPARATOR ',') 
+                     FROM news_categories nc 
+                     JOIN categories c ON nc.category_id = c.id 
+                     WHERE nc.news_id = n.id) AS 'news_categories_names',
 
                     ctg.`id` AS 'category_id',
                     ctg.`name` AS 'category_name',
@@ -321,7 +344,27 @@ class RepoNews extends DatabaseConnection
     #endregion
 
     #region CREATE
-    public function CreateNews(News $news): int
+    public function checkTitleExists(string $title): bool
+    {
+        $sql = "SELECT id FROM news WHERE title = ?";
+        $connection = null;
+        $stmt = null;
+        try {
+            $connection = $this->db->connect();
+            $stmt = $connection->prepare($sql);
+            $stmt->bind_param("s", $title);
+            $stmt->execute();
+            $stmt->store_result();
+            return $stmt->num_rows > 0;
+        } catch (Exception $e) {
+            return false;
+        } finally {
+            if ($stmt) $stmt->close();
+            if ($connection) $connection->close();
+        }
+    }
+
+    public function CreateNews(News $news, array $additionalCategoryIds = []): int
     {
         $sql = "INSERT INTO `news` (
                     `writer_username`,
@@ -339,6 +382,8 @@ class RepoNews extends DatabaseConnection
 
         try {
             $connection = $this->db->connect();
+            // Start transaction
+            $connection->begin_transaction();
 
             $stmt = $connection->prepare($sql);
             if (!$stmt) {
@@ -351,6 +396,7 @@ class RepoNews extends DatabaseConnection
             $slug           = $news->getSlug();
             $content        = $news->getContent();
             $catRaw = $news->getCategory();
+            // Primary category (first one)
             $catId  = is_array($catRaw) ? $catRaw['id'] : (is_object($catRaw) ? $catRaw->getId() : $catRaw);
 
             $stmt->bind_param(
@@ -365,11 +411,36 @@ class RepoNews extends DatabaseConnection
             );
 
             if ($stmt->execute()) {
-                return $stmt->insert_id;
+                $newsId = $stmt->insert_id;
+
+                // Insert into news_categories
+                // Merge primary category with additional ones to ensure all are in the Many-to-Many table
+                $allCategories = array_unique(array_merge([$catId], $additionalCategoryIds));
+                
+                $sqlCat = "INSERT INTO news_categories (news_id, category_id) VALUES (?, ?)";
+                $stmtCat = $connection->prepare($sqlCat);
+                
+                // Bind once
+                $cIdInt = 0;
+                $stmtCat->bind_param("ii", $newsId, $cIdInt);
+                
+                foreach ($allCategories as $cId) {
+                    $cIdInt = (int)$cId;
+                    if ($cIdInt > 0) {
+                        $stmtCat->execute();
+                    }
+                }
+                $stmtCat->close();
+
+                $connection->commit();
+                return $newsId;
+            } else {
+                $connection->rollback();
+                return 0;
             }
-            return 0;
 
         } catch (Exception $e) {
+            if ($connection) $connection->rollback();
             throw $e;
         } finally {
             if ($stmt) $stmt->close();
@@ -460,7 +531,6 @@ class RepoNews extends DatabaseConnection
     public function deleteNews(int $news_id): bool
     {
         $sql = "DELETE FROM `news` WHERE `id` = ?";
-        $connection = null;
         $stmt = null;
 
         try {
@@ -471,13 +541,38 @@ class RepoNews extends DatabaseConnection
             }
             $stmt->bind_param("i", $news_id);
             $stmt->execute();
-            return $stmt->affected_rows === 1;
+            $result = $stmt->affected_rows === 1;
+            $stmt->close();
+            return $result;
 
         } catch (Exception $e) {
             throw $e;
-        } finally {
-            if ($stmt) $stmt->close();
-            if ($connection) $connection->close();
+        }
+    }
+
+    public function getNewsAuthor(int $news_id): ?string
+    {
+        $sql = "SELECT w.username FROM news n
+                INNER JOIN writers w ON n.writer_username = w.username
+                WHERE n.id = ?";
+        $stmt = null;
+
+        try {
+            $connection = $this->db->connect();
+            $stmt = $connection->prepare($sql);
+            if (!$stmt) {
+                throw new Exception("Failed to prepare getNewsAuthor query: " . $connection->error);
+            }
+            $stmt->bind_param("i", $news_id);
+            $stmt->execute();
+            $result = $stmt->get_result();
+            $row = $result->fetch_assoc();
+            $stmt->close();
+            
+            return $row ? $row['username'] : null;
+
+        } catch (Exception $e) {
+            throw $e;
         }
     }
     #endregion
@@ -582,7 +677,7 @@ class RepoNews extends DatabaseConnection
         
         $writer->setUsername($row['writer_username']);
         $writer->setFullname($row['writer_fullname']);
-        $writer->setRole($row['writer_role'] ?? 'WRITER');
+        $writer->setRole(strtoupper($row['writer_role'] ?? 'WRITER'));
         $writer->setEmail($row['writer_email'] ?? "writer@newsapp.com");
         $fullPath = IMAGE_DATABASE_ADDRESS . "WRITER/" . $row['writer_username'] . "." . $row['writer_profile_picture_ext'];
         $writer->setProfilePictureAddress($fullPath);
@@ -599,14 +694,20 @@ class RepoNews extends DatabaseConnection
         $news->setDislikeCount((int)($row['news_dislike_count'] ?? 0));
         $news->setCommentCount((int)($row['news_comment_count'] ?? 0));
         $news->setRating((float)($row['news_rating'] ?? 0.0));
+        // Store rating_count for later use in toArray (News model doesn't have this property)
+        $ratingCount = (int)($row['news_rating_count'] ?? 0);
         $tagsArray = explode(',', $row['news_tags_string']);
         $news->setTags($tagsArray);
+        
+        $catsArray = isset($row['news_categories_names']) && !empty($row['news_categories_names']) ? explode(',', $row['news_categories_names']) : [];
+        $news->setCategories($catsArray);
+
         $news->setCategory($row['category_name']);
         $news->setCreatedAt($row['news_created_at']);
         $news->setUpdatedAt($row['news_updated_at'] ?? $row['news_created_at'] ?? date('Y-m-d H:i:s'));
         
 
-        $imgSql = "SELECT image_path FROM news_images WHERE news_id = ? ORDER BY sort_order ASC";
+        $imgSql = "SELECT image_path, image_ext FROM news_images WHERE news_id = ? ORDER BY position ASC";
         $conn = $this->db->connect();
         $stmtImg = $conn->prepare($imgSql);
         if ($stmtImg) {
@@ -615,7 +716,11 @@ class RepoNews extends DatabaseConnection
             $stmtImg->execute();
             $resImg = $stmtImg->get_result();
             while ($imgRow = $resImg->fetch_assoc()) {
-                $fullPath = API_ADDRESS . $imgRow['image_path'];
+                if (!empty($imgRow['image_path'])) {
+                    $fullPath = API_ADDRESS . $imgRow['image_path'];
+                } else {
+                    $fullPath = IMAGE_DATABASE_ADDRESS . "NEWS/" . $newsId . "." . $imgRow['image_ext'];
+                }
                 $news->addImage($fullPath);
             }
             $stmtImg->close();
@@ -631,6 +736,102 @@ class RepoNews extends DatabaseConnection
     private function mapSQLResultToNewsThumbnail(array $row): News
     {
         return new News();
+    }
+
+    #endregion
+
+    #region GET USER FAVORITES
+    public function findNewsByUserLikes(string $username): array
+    {
+        $sql = "SELECT
+                    n.`id` AS 'news_id',
+                    n.`title` AS 'news_title',
+                    n.`slug` AS 'news_slug',
+                    n.`content` AS 'news_content',
+                    n.`view_count` AS 'news_views',
+                    n.`created_at` AS 'news_created_at', 
+                    n.`updated_at` AS 'news_updated_at',
+                    
+                    (SELECT COUNT(*) FROM likes WHERE news_id = n.id AND is_like = 1) AS 'news_like_count',
+                    (SELECT COUNT(*) FROM likes WHERE news_id = n.id AND is_like = 0) AS 'news_dislike_count',
+                    (SELECT COALESCE(AVG(rate), 0) FROM rates WHERE news_id = n.id) AS 'news_rating',
+                    (SELECT GROUP_CONCAT(t.name SEPARATOR ',') 
+                     FROM news_tags nt 
+                     JOIN tags t ON nt.tags_id = t.id 
+                     WHERE nt.news_id = n.id) AS 'news_tags_string',
+                    (SELECT GROUP_CONCAT(c.name SEPARATOR ',') 
+                     FROM news_categories nc 
+                     JOIN categories c ON nc.category_id = c.id 
+                     WHERE nc.news_id = n.id) AS 'news_categories_names',
+
+                    ctg.`id` AS 'category_id',
+                    ctg.`name` AS 'category_name',
+                    
+                    ct.`id` AS 'city_id',
+                    ct.`name` AS 'city_name',
+                    ct.`latitude` AS 'city_latitude',
+                    ct.`longitude` AS 'city_longitude',
+                    
+                    cd.`id` AS 'country_division_id',
+                    cd.`name` AS 'country_division_name',
+                    
+                    cm.`id` AS 'country_id',
+                    cm.`name` AS 'country_name',
+                    cm.`code` AS 'country_code',
+                    cm.`telephone` AS 'country_telephone',
+
+                    m.`id` AS 'media_id',
+                    m.`name` AS 'media_name',
+                    m.`slug` AS 'media_slug',
+                    m.`company_name` AS 'media_company_name',
+                    m.`media_type` AS 'media_type',
+                    m.`picture_ext` AS 'media_picture_ext',
+                    m.`logo_ext` AS 'media_logo_ext',
+                    m.`website` AS 'media_website',
+                    m.`email` AS 'media_email',
+                    m.`description` AS 'media_description',
+
+                    w.`username` AS 'writer_username',
+                    w.`biography` AS 'writer_biography',
+                    w.`is_verified` AS 'writer_is_verified',
+                    a.`fullname` AS 'writer_fullname',
+                    a.`email` AS 'writer_email',
+                    a.`role` AS 'writer_role',
+                    a.`profile_picture_ext` AS 'writer_profile_picture_ext'
+                FROM
+                    news n
+                    INNER JOIN `categories` ctg ON n.`category_id` = ctg.`id`
+                    LEFT JOIN `cities` ct ON n.`city_id` = ct.`id`
+                    LEFT JOIN `country_divisions` cd ON ct.`country_division_id` = cd.`id`
+                    LEFT JOIN `countries` cm ON cd.`country_id` = cm.`id`
+                    LEFT JOIN `medias` m ON n.`media_id` = m.`id`
+                    LEFT JOIN `writers` w ON n.`writer_username` = w.`username`
+                    INNER JOIN `accounts` a ON w.`username` = a.`username`
+                    INNER JOIN `likes` l ON n.`id` = l.`news_id` AND l.`username` = ?
+                WHERE l.`is_like` = 1
+                ORDER BY l.`created_at` DESC;";
+
+        $connection = null;
+        $stmt = null;
+        $newsList = [];
+
+        try {
+            $connection = $this->db->connect();
+            $stmt = $connection->prepare($sql);
+            $stmt->bind_param("s", $username);
+            $stmt->execute();
+            $result = $stmt->get_result();
+
+            while ($row = $result->fetch_assoc()) {
+                $newsList[] = $this->mapSQLResultToNewsObject($row)->toArray();
+            }
+
+            return $newsList;
+        } catch (Exception $e) {
+            throw $e;
+        } finally {
+            if ($stmt) $stmt->close();
+        }
     }
     #endregion
 }

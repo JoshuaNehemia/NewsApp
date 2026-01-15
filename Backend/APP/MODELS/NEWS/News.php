@@ -20,15 +20,16 @@ use Generator;
 class News
 {
     #region FIELDS
-    private int $id;
-    private string $title;
-    private string $slug;
-    private string $content;
+    private int $id = 0;
+    private string $title = '';
+    private string $slug = '';
+    private string $content = '';
     private array $images = [];
-    private Writer $author;
-    private Media $media;
-    private City $city;
-    private $category;
+    private Writer|null $author = null;
+    private Media|null $media = null;
+    private City|null $city = null;
+    private $category = null;
+    private array $categories = [];
     private int $view_count = 0;
     private int $like_count = 0;
     private int $dislike_count = 0;
@@ -36,8 +37,8 @@ class News
     private array $comments = [];
     private array $tags = [];
     private float $rating = 0.0;
-    private string $created_at;
-    private string $updated_at;
+    private string $created_at = '';
+    private string $updated_at = '';
 
     #endregion
 
@@ -51,6 +52,11 @@ class News
     public function getId(): int
     {
         return isset($this->id) ? $this->id : 0;
+    }
+
+    public function getCategories(): array
+    {
+        return $this->categories;
     }
 
     public function getTitle(): string
@@ -301,6 +307,12 @@ class News
     }
     #endregion
 
+    public function setCategories(array $categories): self
+    {
+        $this->categories = $categories;
+        return $this;
+    }
+
     #region UTILITIES
     public function toArray(): array
     {
@@ -311,6 +323,7 @@ class News
             'content' => $this->content,
             'images' => $this->images,
             'category' => is_object($this->category) ? $this->category->toArray() : $this->category,
+            'categories' => $this->categories,
             'view_count' => $this->view_count,
             'like_count' => $this->like_count,
             'dislike_count' => $this->dislike_count,

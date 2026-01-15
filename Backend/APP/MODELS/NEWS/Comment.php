@@ -98,12 +98,16 @@ class Comment
 
     public function setReplyToId(?int $commentId): self
     {
-        if ($commentId <= 0) {
-            throw new Exception("Comment has invalid parent comment ID");
-        }
+        // Allow null for top-level comments
+        if ($commentId !== null) {
+            if ($commentId <= 0) {
+                throw new Exception("Comment has invalid parent comment ID");
+            }
 
-        if ($this->id !== null && $commentId === $this->id) {
-            throw new Exception("Comment cannot reply to itself");
+            // Check if comment is replying to itself (only if id is already set)
+            if (isset($this->id) && $commentId === $this->id) {
+                throw new Exception("Comment cannot reply to itself");
+            }
         }
 
         $this->reply_to_id = $commentId;

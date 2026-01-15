@@ -38,7 +38,7 @@ class RepoImage
         }
 
         $sql = "
-            INSERT INTO news_images (news_id, image_path, alt_text, sort_order)
+            INSERT INTO news_images (news_id, image_path, alt_text, position)
             VALUES (?, ?, ?, ?)
         ";
 
@@ -82,7 +82,7 @@ class RepoImage
             SELECT *
             FROM news_images
             WHERE news_id = ?
-            ORDER BY sort_order ASC, id ASC
+            ORDER BY position ASC, id ASC
         ";
 
         $conn = null;
@@ -126,7 +126,7 @@ class RepoImage
             SELECT *
             FROM news_images
             WHERE news_id = ?
-            ORDER BY sort_order ASC, id ASC
+            ORDER BY position ASC, id ASC
             LIMIT 1
         ";
 
@@ -176,7 +176,7 @@ class RepoImage
 
         $sql = "
             UPDATE news_images
-            SET image_path = ?, alt_text = ?, sort_order = ?
+            SET image_path = ?, alt_text = ?, position = ?
             WHERE id = ?
         ";
 

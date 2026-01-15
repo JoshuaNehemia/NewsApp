@@ -27,6 +27,11 @@ export class RegisterPage implements OnInit {
   };
 
   constructor(private http: HttpService, private router: Router) {}
+  
+  compareCountries(c1: any, c2: any): boolean {
+    return c1 && c2 ? c1 === c2 : c1 === c2;
+  }
+  
   ngOnInit() {
     this.loadCountries();
   }
@@ -45,7 +50,7 @@ export class RegisterPage implements OnInit {
   }
 
   onCountryChange(event: any) {
-    this.regData.country_id = event.detail.value;
+    this.regData.country_id = parseInt(event.detail.value, 10);
     this.updatePrefix();
   }
 
@@ -82,6 +87,9 @@ export class RegisterPage implements OnInit {
       return;
     }
 
+    // Ensure country_id is number
+    this.regData.country_id = parseInt(String(this.regData.country_id), 10);
+
     this.http.register_user(this.regData).subscribe(
       (res: any) => {
         if (res.status === 'success') {
@@ -91,9 +99,16 @@ export class RegisterPage implements OnInit {
           alert('Gagal: ' + res.message);
         }
       },
-      (err) => {
+      (err: any) => {
         console.error(err);
-        alert('Terjadi kesalahan koneksi.');
+        // Try to get error message from response
+        let errorMessage = 'Terjadi kesalahan koneksi.';
+        if (err.error && err.error.message) {
+          errorMessage = err.error.message;
+        } else if (err.message) {
+          errorMessage = err.message;
+        }
+        alert(errorMessage);
       }
     );
   }

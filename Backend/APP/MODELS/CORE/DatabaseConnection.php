@@ -64,7 +64,7 @@ class DatabaseConnection
     {
         if ($this->conn !== null) {
             $this->conn->close();
-            $this->conn = null;
+            $this->conn = null; // Important: set to null after close
         }
     }
     #endregion

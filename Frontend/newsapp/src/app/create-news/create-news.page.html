@@ -20,7 +20,7 @@
 
   <ion-item>
     <ion-label>Kategori</ion-label>
-    <ion-select [(ngModel)]="categoryId" placeholder="Pilih Kategori">
+    <ion-select [(ngModel)]="categoryId" placeholder="Pilih Kategori" [multiple]="true">
       <ion-select-option *ngFor="let cat of categories" [value]="cat.id">
         {{ cat.name }}
       </ion-select-option>

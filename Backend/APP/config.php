@@ -1,6 +1,6 @@
 <?php
 #region ADDRESS
-define("API_ADDRESS","http://localhost/NewsApp/Backend/APP/");
+define("API_ADDRESS","https://ubaya.cloud/hybrid/160423135/Backend/APP/");
 define("IMAGE_DATABASE_ADDRESS", API_ADDRESS . "DATABASE/IMAGE/"); // API Address
 #endregion
 

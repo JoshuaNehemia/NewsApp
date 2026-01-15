@@ -12,7 +12,7 @@ import { AlertController, ToastController } from '@ionic/angular';
 export class NewsListPage implements OnInit {
   newsList: any[] = [];
   pageTitle: string = 'Daftar Berita';
-  isMyNewsMode: boolean = false; 
+  isMyNewsMode: boolean = false;
   currentUser: any = {};
 
   constructor(
@@ -21,7 +21,7 @@ export class NewsListPage implements OnInit {
     private router: Router,
     private alertCtrl: AlertController,
     private toastCtrl: ToastController
-  ) {}
+  ) { }
 
   ngOnInit() {
     const userStr = localStorage.getItem('user_data');
@@ -59,16 +59,19 @@ export class NewsListPage implements OnInit {
   }
 
   loadNewsByCategory(catId: number) {
-    // Karena API get_news_by_category belum ada di file yang diupload,
-    // kita filter manual dari get_news (IDEALNYA buat API khusus di backend)
-    this.http.get_news().subscribe((res: any) => {
-      if (res.status === 'success') {
-        // Filter array di frontend
-        this.newsList = res.data.filter(
-          (news: any) => news.category_id == catId
-        );
+    this.http.get_news_by_category(catId).subscribe(
+      (res: any) => {
+        if (res.status === 'success') {
+          this.newsList = res.data;
+        } else {
+          this.newsList = [];
+        }
+      },
+      (err) => {
+        console.error('Gagal load news by category', err);
+        this.newsList = [];
       }
-    });
+    );
   }
 
   loadMyNews() {
@@ -104,7 +107,7 @@ export class NewsListPage implements OnInit {
   }
 
   deleteNews(newsId: number) {
-    this.http.delete_news(newsId).subscribe(
+    this.http.delete_news(newsId, this.currentUser.username).subscribe(
       (res: any) => {
         if (res.status === 'success') {
           // Hapus dari list di layar

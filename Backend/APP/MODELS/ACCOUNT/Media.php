@@ -15,17 +15,17 @@ use Exception;
 class Media
 {
     #region FIELDS
-    private int $id;
-    private string $name;
-    private string $slug;
-    private string $company_name;
-    private string $type;
-    private string $logo_address;
-    private string $picture_address;
-    private string $website;
-    private string $email;
-    private string $description;
-    private City $city;
+    private int $id = 0;
+    private string $name = '';
+    private string $slug = '';
+    private string $company_name = '';
+    private string $type = '';
+    private string $logo_address = '';
+    private string $picture_address = '';
+    private string $website = '';
+    private string $email = '';
+    private string $description = '';
+    private City|null $city = null;
     #endregion
 
     #region CONSTRUCT

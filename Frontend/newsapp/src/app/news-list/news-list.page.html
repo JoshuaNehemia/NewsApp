@@ -8,7 +8,7 @@
 </ion-header>
 
 <ion-content [fullscreen]="true">
-  
+
   <div *ngIf="newsList.length === 0" class="ion-text-center ion-padding">
     <p>Belum ada berita.</p>
   </div>
@@ -20,14 +20,20 @@
       </ion-thumbnail>
       <ion-label>
         <h2>{{ news.title }}</h2>
+        <p style="margin-top: 4px; margin-bottom: 4px; color: var(--ion-color-medium); font-size: 0.85em;"
+          *ngIf="news.categories && news.categories.length > 0">
+          <ng-container *ngFor="let cat of news.categories; let last = last">{{ cat }}{{ !last ? ', ' : ''
+            }}</ng-container>
+        </p>
         <p>{{ news.created_at | date:'mediumDate' }}</p>
         <p *ngIf="!isMyNewsMode">Oleh: {{ news.author.fullname }}</p>
         <ion-chip *ngIf="isMyNewsMode" color="success" outline="true">
-           <ion-label>Status: Published</ion-label>
+          <ion-label>Status: Published</ion-label>
         </ion-chip>
       </ion-label>
 
-      <ion-buttons slot="end" *ngIf="isMyNewsMode">
+      <ion-buttons slot="end"
+        *ngIf="isMyNewsMode || (currentUser && news.author && news.author.username === currentUser.username)">
         <ion-button color="danger" (click)="confirmDelete(news.id, $event)">
           <ion-icon slot="icon-only" name="trash-outline"></ion-icon>
         </ion-button>

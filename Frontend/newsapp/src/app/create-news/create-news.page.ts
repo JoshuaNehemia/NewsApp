@@ -7,7 +7,7 @@ import { ToastController } from '@ionic/angular';
   selector: 'app-create-news',
   templateUrl: './create-news.page.html',
   styleUrls: ['./create-news.page.scss'],
-  standalone:false
+  standalone: false
 })
 export class CreateNewsPage implements OnInit {
   title: string = '';
@@ -21,7 +21,7 @@ export class CreateNewsPage implements OnInit {
     private httpService: HttpService,
     private router: Router,
     private toastCtrl: ToastController
-  ) {}
+  ) { }
 
   ngOnInit() {
     this.loadCategories();
@@ -62,7 +62,12 @@ export class CreateNewsPage implements OnInit {
     const formData = new FormData();
     formData.append('title', this.title);
     formData.append('content', this.content);
-    formData.append('category_id', this.categoryId);
+    // categoryId akan berupa array jika multiple selection
+    if (Array.isArray(this.categoryId)) {
+      formData.append('category_id', this.categoryId.join(','));
+    } else {
+      formData.append('category_id', this.categoryId);
+    }
     formData.append('writer_username', writerUsername);
     formData.append('city_id', '1');
     formData.append('tags', this.tags);

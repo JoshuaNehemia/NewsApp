@@ -5,9 +5,11 @@ export interface NewsAPI {
   content: string;
   images: string[];
   category: string;
+  categories: string[];
   view_count: number;
   like_count: number;
   rating: number;
+  rating_count?: number;
   tags: string[];
   author: {
     username: string;
