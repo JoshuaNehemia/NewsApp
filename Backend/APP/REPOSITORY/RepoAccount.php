@@ -274,8 +274,6 @@ class RepoAccount
             $countryId = null;
             if ($user->getCountry()) {
                 $countryId = $user->getCountry()->getId();
-            } else {
-                 throw new Exception("Country data is missing for user creation");
             }
 
             $stmt->bind_param(

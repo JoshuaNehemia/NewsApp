@@ -34,6 +34,7 @@ try {
     $conn = $db->connect();
 
     // Search by title using LIKE
+    $imageBaseUrl = IMAGE_DATABASE_ADDRESS;
     $sql = "SELECT 
                 n.id,
                 n.title,
@@ -48,7 +49,7 @@ try {
             LEFT JOIN writers w ON n.writer_username = w.username
             LEFT JOIN accounts a ON w.username = a.username
             LEFT JOIN (
-                SELECT news_id, CONCAT('http://localhost/NewsApp2/Backend/uploads/news_images/', id, '.', image_ext) as image_url
+                SELECT news_id, CONCAT('{$imageBaseUrl}', id, '.', image_ext) as image_url
                 FROM news_images
                 WHERE position = 0
             ) img ON n.id = img.news_id

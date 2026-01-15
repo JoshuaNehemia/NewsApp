@@ -54,7 +54,7 @@ try {
     if (isset($input['phone_number'])) $user->setPhoneNumber($input['phone_number']);
     if (isset($input['gender'])) $user->setGender($input['gender']);
     if (isset($input['biography'])) $user->setBiography($input['biography']);
-    if (isset($input['country_id'])) {
+    if (!empty($input['country_id']) && $input['country_id'] !== null) {
         $repoCountry = new RepoCountry();
         $foundCountry = $repoCountry->findCountryById((int)$input['country_id']);
         if ($foundCountry) {
@@ -67,13 +67,6 @@ try {
             ]);
             exit;
         }
-    } else {
-        http_response_code(400);
-        echo json_encode([
-            'status' => 'error',
-            'message' => "Country ID should field!"
-        ]);
-        exit;
     }
 
     if (empty($input['password'])) {

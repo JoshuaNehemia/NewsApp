@@ -153,7 +153,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $uploadFileDir = "../APP/" . $relativeFolder; 
 
             if (!file_exists($uploadFileDir)) {
-                mkdir($uploadFileDir, 0777, true);
+                if (!mkdir($uploadFileDir, 0777, true)) {
+                    $uploadErrors[] = "Gagal membuat folder: " . $uploadFileDir;
+                }
             }
 
             $counter = 1;
@@ -168,14 +170,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         $dest_path = $uploadFileDir . $newFileName;
                         if(move_uploaded_file($file['tmp_name'], $dest_path)) {
                             $dbImagePath = $relativeFolder . $newFileName;
-                            $repoImage->createImage($newNewsId, $dbImagePath, "News Image " . $counter, $counter);
                             
-                            $uploadedPaths[] = $dbImagePath;
+                            try {
+                                $repoImage->createImage($newNewsId, $dbImagePath, "News Image " . $counter, $counter);
+                                $uploadedPaths[] = $dbImagePath;
+                            } catch (Exception $e) {
+                                $uploadErrors[] = "Error save DB image $counter: " . $e->getMessage();
+                            }
+                            
                             $counter++;
                         } else {
-                            $uploadErrors[] = "Gagal upload: " . $file['name'];
+                            $uploadErrors[] = "Gagal move file: " . $file['name'] . " to " . $dest_path;
                         }
+                    } else {
+                        $uploadErrors[] = "Extension tidak diizinkan: " . $fileExtension;
                     }
+                } else {
+                    $uploadErrors[] = "Upload error code: " . $file['error'] . " for " . $file['name'];
                 }
             }
 
@@ -186,7 +197,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     'news_id' => $newNewsId,
                     'slug' => $slug,
                     'images_count' => count($uploadedPaths),
-                    'tags_added' => $processedTags
+                    'images_uploaded' => $uploadedPaths,
+                    'tags_added' => $processedTags,
+                    'upload_errors' => $uploadErrors
                 ]
             ]);
 
