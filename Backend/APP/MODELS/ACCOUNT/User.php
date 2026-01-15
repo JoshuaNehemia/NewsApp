@@ -19,12 +19,12 @@ use Exception;
 class User extends Account
 {
     #region FIELDS
-    private string $birthdate;
-    private string $phone_number;
-    private string $gender;
-    private string $biography;
+    private string $birthdate = '';
+    private string $phone_number = '';
+    private string $gender = '';
+    private string $biography = '';
     //private Geolocation $current_location;
-    private Country $country;
+    private Country|null $country = null;
     #endregion
 
     #region CONSTRUCTOR

@@ -1,13 +1,61 @@
 <ion-header [translucent]="true">
   <ion-toolbar>
-    <ion-title>favorites</ion-title>
+    <ion-buttons slot="start">
+      <ion-menu-button color="primary"></ion-menu-button>
+    </ion-buttons>
+
+    <ion-title>
+      Favorites
+    </ion-title>
+
+    <ion-buttons slot="end">
+      <ion-button [routerLink]="['/search']">
+        <ion-icon slot="icon-only" name="search-outline"></ion-icon>
+      </ion-button>
+    </ion-buttons>
   </ion-toolbar>
 </ion-header>
 
 <ion-content [fullscreen]="true">
   <ion-header collapse="condense">
     <ion-toolbar>
-      <ion-title size="large">favorites</ion-title>
+      <ion-title size="large">Favorites</ion-title>
     </ion-toolbar>
   </ion-header>
+
+  <div *ngIf="favorites.length === 0; else hasFavorites" class="ion-padding ion-text-center">
+    <ion-icon name="heart-outline" style="font-size: 48px; color: #ccc;"></ion-icon>
+    <p>No favorites yet. Like some news to add them here!</p>
+  </div>
+
+  <ng-template #hasFavorites>
+    <ion-list>
+      <ion-item *ngFor="let news of favorites" [routerLink]="['/news-detail', news.id]" lines="none" detail>
+        <ion-thumbnail slot="start">
+          <img [src]="news.images.length > 0 ? news.images[0] : 'assets/images/placeholder.jpg'">
+        </ion-thumbnail>
+        <ion-label>
+          <ion-note color="primary" style="font-size: 0.7rem;">{{ news.category }}</ion-note>
+
+          <h3 class="ion-text-wrap" style="font-weight: bold; margin-top: 2px;">{{ news.title }}</h3>
+
+          <div class="tags-container-list" *ngIf="news.tags && news.tags.length > 0 && news.tags[0] !== ''">
+             <span *ngFor="let tag of news.tags" style="color: #666; font-size: 0.7rem; margin-right: 5px;">#{{ tag }}</span>
+          </div>
+          
+          <p>{{ news.author.fullname }}</p> 
+          
+          <p style="font-size: 0.8rem;">
+            {{ news.created_at | date:'mediumDate' }}
+          </p>
+          
+          <p *ngIf="news.rating > 0; else noRating">
+            <ion-icon name="star" color="warning"></ion-icon> {{ news.rating }}
+          </p>
+          <ng-template #noRating><p><small>No rating yet</small></p></ng-template>
+
+        </ion-label>
+      </ion-item>
+    </ion-list>
+  </ng-template>
 </ion-content>

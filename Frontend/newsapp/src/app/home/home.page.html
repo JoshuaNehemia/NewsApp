@@ -7,85 +7,131 @@
     <ion-title>
       Breaking News
     </ion-title>
+  </ion-toolbar>
 
-    <ion-buttons slot="end">
-      <ion-button [routerLink]="['/search']">
-        <ion-icon slot="icon-only" name="search-outline"></ion-icon>
-      </ion-button>
-    </ion-buttons>
+  <!-- Search bar -->
+  <ion-toolbar>
+    <ion-searchbar [(ngModel)]="searchQuery" (ionInput)="onSearchChange($event)" (ionClear)="clearSearch()"
+      placeholder="Search news..." debounce="500" animated="true">
+    </ion-searchbar>
   </ion-toolbar>
 </ion-header>
 
 <ion-content [fullscreen]="true">
-  <ion-header collapse="condense">
-    <ion-toolbar>
-      <ion-title size="large">Breaking News</ion-title>
-    </ion-toolbar>
-  </ion-header>
+  <!-- Search Results (shown when searching) -->
+  <div *ngIf="isSearching && searchResults.length > 0" class="search-results">
+    <ion-list-header>
+      <ion-label>Search Results ({{ searchResults.length }})</ion-label>
+    </ion-list-header>
 
-  <ion-card *ngIf="breakingNews" [routerLink]="['/news-detail', breakingNews.id]" class="breaking-card">
-    <div class="card-image-container">
-      <img [src]="breakingNews.images.length > 0 ? breakingNews.images[0] : 'assets/images/placeholder.jpg'" />
-      
-      <div class="card-overlay-content">
-        <ion-chip color="primary">{{ breakingNews.category }}</ion-chip>
-        
-        <h2>{{ breakingNews.title }}</h2>
+    <ion-list>
+      <ion-item *ngFor="let news of searchResults" (click)="goToNewsDetail(news.id)" button detail>
+        <ion-thumbnail slot="start">
+          <img [src]="news.image">
+        </ion-thumbnail>
+        <ion-label>
+          <h3 class="ion-text-wrap">{{ news.title }}</h3>
+          <p>{{ news.category }} • {{ news.created_at | date:'short' }}</p>
+          <p class="ion-text-wrap" style="font-size: 0.85rem; color: #666;">{{ news.excerpt }}</p>
+        </ion-label>
+      </ion-item>
+    </ion-list>
+  </div>
 
-        <div class="tags-container" *ngIf="breakingNews.tags && breakingNews.tags.length > 0 && breakingNews.tags[0] !== ''">
-          <ion-badge color="light" *ngFor="let tag of breakingNews.tags" class="ion-margin-end">
-            #{{ tag }}
-          </ion-badge>
+  <!-- No results message -->
+  <div *ngIf="isSearching && searchResults.length === 0 && searchQuery.length > 2" class="ion-padding ion-text-center">
+    <p>No news found for "{{ searchQuery }}"</p>
+  </div>
+
+  <!-- Normal content (hidden when searching) -->
+  <div [hidden]="isSearching">
+    <ion-header collapse="condense">
+      <ion-toolbar>
+        <ion-title size="large">Breaking News</ion-title>
+      </ion-toolbar>
+    </ion-header>
+
+    <ion-card *ngIf="breakingNews" [routerLink]="['/news-detail', breakingNews.id]" class="breaking-card">
+      <div class="card-image-container">
+        <img [src]="breakingNews.images.length > 0 ? breakingNews.images[0] : 'assets/images/placeholder.jpg'" />
+
+        <div class="card-overlay-content">
+          <ion-chip color="primary">
+            <ng-container *ngIf="breakingNews.categories && breakingNews.categories.length > 0; else singleCatBreaking">
+              <span *ngFor="let cat of breakingNews.categories; let last = last">{{ cat }}{{ !last ? ', ' : ''
+                }}</span>
+            </ng-container>
+            <ng-template #singleCatBreaking>{{ breakingNews.category }}</ng-template>
+          </ion-chip>
+
+          <h2>{{ breakingNews.title }}</h2>
+
+          <div class="tags-container"
+            *ngIf="breakingNews.tags && breakingNews.tags.length > 0 && breakingNews.tags[0] !== ''">
+            <ion-badge color="light" *ngFor="let tag of breakingNews.tags" class="ion-margin-end">
+              #{{ tag }}
+            </ion-badge>
+          </div>
+
+          <p>
+            {{ breakingNews.author.fullname }} • {{ breakingNews.created_at | date:'mediumDate' }}
+          </p>
         </div>
-
-        <p>
-          {{ breakingNews.author.fullname }} • {{ breakingNews.created_at | date:'mediumDate' }}
-        </p>
       </div>
+    </ion-card>
+
+    <div class="ion-padding-start ion-padding-top">
+      <ion-label><strong>Categories</strong></ion-label>
+      <ion-button fill="clear" size="small" class="view-all-btn" [routerLink]="['/news-list']">View all</ion-button>
     </div>
-  </ion-card>
 
-  <div class="ion-padding-start ion-padding-top">
-    <ion-label><strong>Categories</strong></ion-label>
-    <ion-button fill="clear" size="small" class="view-all-btn" [routerLink]="['/news-list']">View all</ion-button>
-  </div>
-  
-  <div class="category-chips">
-    <ion-chip *ngFor="let cat of categories" [routerLink]="['/news-list', {id: cat.id, name: cat.name}]" outline="true">
-      <ion-label>{{ cat.name }}</ion-label>
-    </ion-chip>
-  </div>
+    <div class="category-chips">
+      <ion-chip *ngFor="let cat of categories" [routerLink]="['/news-list', {id: cat.id, name: cat.name}]"
+        outline="true">
+        <ion-label>{{ cat.name }}</ion-label>
+      </ion-chip>
+    </div>
 
-  <ion-list-header>
-    <ion-label>Recommendation</ion-label>
-  </ion-list-header>
+    <ion-list-header>
+      <ion-label>Recommendation</ion-label>
+    </ion-list-header>
 
-  <ion-list>
-    <ion-item *ngFor="let news of recommendations" [routerLink]="['/news-detail', news.id]" lines="none" detail>
-      <ion-thumbnail slot="start">
-        <img [src]="news.images.length > 0 ? news.images[0] : 'assets/images/placeholder.jpg'">
-      </ion-thumbnail>
-      <ion-label>
-        <ion-note color="primary" style="font-size: 0.7rem;">{{ news.category }}</ion-note>
+    <ion-list>
+      <ion-item *ngFor="let news of recommendations" [routerLink]="['/news-detail', news.id]" lines="none" detail>
+        <ion-thumbnail slot="start">
+          <img [src]="news.images.length > 0 ? news.images[0] : 'assets/images/placeholder.jpg'">
+        </ion-thumbnail>
+        <ion-label>
+          <ion-note color="primary" style="font-size: 0.7rem;">
+            <ng-container *ngIf="news.categories && news.categories.length > 0; else singleCatRec">
+              <span *ngFor="let cat of news.categories; let last = last">{{ cat }}{{ !last ? ', ' : '' }}</span>
+            </ng-container>
+            <ng-template #singleCatRec>{{ news.category }}</ng-template>
+          </ion-note>
 
-        <h3 class="ion-text-wrap" style="font-weight: bold; margin-top: 2px;">{{ news.title }}</h3>
+          <h3 class="ion-text-wrap" style="font-weight: bold; margin-top: 2px;">{{ news.title }}</h3>
 
-        <div class="tags-container-list" *ngIf="news.tags && news.tags.length > 0 && news.tags[0] !== ''">
-           <span *ngFor="let tag of news.tags" style="color: #666; font-size: 0.7rem; margin-right: 5px;">#{{ tag }}</span>
-        </div>
-        
-        <p>{{ news.author.fullname }}</p> 
-        
-        <p style="font-size: 0.8rem;">
-          {{ news.created_at | date:'mediumDate' }}
-        </p>
-        
-        <p *ngIf="news.rating > 0; else noRating">
-          <ion-icon name="star" color="warning"></ion-icon> {{ news.rating }}
-        </p>
-        <ng-template #noRating><p><small>Belum ada rating</small></p></ng-template>
+          <div class="tags-container-list" *ngIf="news.tags && news.tags.length > 0 && news.tags[0] !== ''">
+            <span *ngFor="let tag of news.tags" style="color: #666; font-size: 0.7rem; margin-right: 5px;">#{{ tag
+              }}</span>
+          </div>
 
-      </ion-label>
-    </ion-item>
-  </ion-list>
+          <p>{{ news.author.fullname }}</p>
+
+          <p style="font-size: 0.8rem;">
+            {{ news.created_at | date:'mediumDate' }}
+          </p>
+
+          <p *ngIf="news.rating > 0; else noRating">
+            <ion-icon name="star" color="warning"></ion-icon> {{ news.rating | number:'1.1-1' }}
+            <span *ngIf="news.rating_count" style="color: #666; font-size: 0.9em;">({{ news.rating_count }})</span>
+          </p>
+          <ng-template #noRating>
+            <p><small>Belum ada rating</small></p>
+          </ng-template>
+
+        </ion-label>
+      </ion-item>
+    </ion-list>
+  </div> <!-- End normal content wrapper -->
 </ion-content>

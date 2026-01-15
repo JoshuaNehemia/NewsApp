@@ -1,12 +1,9 @@
 <?php
-#region HEADER
 header("Access-Control-Allow-Origin: *");
 header("Content-Type: application/json; charset=UTF-8");
 header("Access-Control-Allow-Methods: POST");
 header("Access-Control-Allow-Headers: Content-Type, Access-Control-Allow-Headers, Authorization, X-Requested-With");
-#endregion
 
-#region REQUIRE
 require_once '../APP/config.php';
 require_once '../APP/MODELS/NEWS/News.php';
 require_once '../APP/MODELS/ACCOUNT/Writer.php';
@@ -16,9 +13,7 @@ require_once '../APP/REPOSITORY/RepoNews.php';
 require_once '../APP/REPOSITORY/RepoImage.php';
 require_once '../APP/REPOSITORY/RepoTag.php';
 require_once '../APP/REPOSITORY/RepoNewsTag.php';
-#endregion
 
-#region USE
 use MODELS\NEWS\News;
 use MODELS\ACCOUNT\Writer;
 use MODELS\ACCOUNT\Media;
@@ -27,9 +22,7 @@ use REPOSITORY\RepoNews;
 use REPOSITORY\RepoImage;
 use REPOSITORY\RepoTag;
 use REPOSITORY\RepoNewsTag;
-#endregion
 
-#region FUNCTION
 function createSlug($string) {
     return strtolower(trim(preg_replace('/[^A-Za-z0-9-]+/', '-', $string)));
 }
@@ -46,18 +39,30 @@ function reArrayFiles(&$file_post) {
     }
     return $file_ary;
 }
-#endregion
 
-#region JSON
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $title = $_POST['title'] ?? '';
     $content = $_POST['content'] ?? '';
-    $categoryId = $_POST['category_id'] ?? 0;
     $writerUsername = $_POST['writer_username'] ?? '';
     $cityId = $_POST['city_id'] ?? 1;
     $tagsInput = $_POST['tags'] ?? [];
+    
+    // Parse Category ID (Handle Multiple)
+    $rawCategoryId = $_POST['category_id'] ?? 0;
+    $primaryCategoryId = 0;
+    $additionalCategoryIds = [];
 
-    if (empty($title) || empty($writerUsername) || empty($categoryId)) {
+    if (strpos((string)$rawCategoryId, ',') !== false) {
+         $cats = explode(',', (string)$rawCategoryId);
+         $cats = array_map('intval', $cats);
+         $primaryCategoryId = $cats[0];
+         $additionalCategoryIds = $cats;
+    } else {
+         $primaryCategoryId = (int)$rawCategoryId;
+         $additionalCategoryIds = [$primaryCategoryId];
+    }
+
+    if (empty($title) || empty($writerUsername) || empty($primaryCategoryId)) {
         http_response_code(400);
         echo json_encode(['status' => 'error', 'message' => 'Data text tidak lengkap.']);
         exit;
@@ -75,6 +80,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         echo json_encode(['status' => 'error', 'message' => 'Minimal upload 4 gambar.']);
         exit;
     }
+
     $writer = new Writer();
     $writer->setUsername($writerUsername);
     
@@ -85,7 +91,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $city = new City();
     $city->setId((int)$cityId);
 
-    $categoryData = ['id' => (int)$categoryId, 'name' => '']; 
+    $categoryData = ['id' => $primaryCategoryId, 'name' => '']; 
 
     $news = new News();
     $news->setTitle($title);
@@ -100,12 +106,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     try {
         $repoNews = new RepoNews();
         $repoImage = new RepoImage();
-        $newNewsId = $repoNews->CreateNews($news);
+        
+        // Pass additionalCategoryIds
+        $newNewsId = $repoNews->CreateNews($news, $additionalCategoryIds);
 
         if ($newNewsId > 0) {
             $repoTag = new RepoTag();
             $repoNewsTag = new RepoNewsTag();
             $processedTags = [];
+            
             if (!is_array($tagsInput)) {
                 $tagsInput = explode(',', $tagsInput);
             }
@@ -117,11 +126,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
 
                 try {
-                    $tagId = $repoTag->findTagIdByNameAndCategory($cleanTagName, (int)$categoryId);
+                    $tagId = $repoTag->findTagIdByNameAndCategory($cleanTagName, $primaryCategoryId);
 
                     if (!$tagId) {
-                        $repoTag->createTag((int)$categoryId, $cleanTagName);
-                        $tagId = $repoTag->findTagIdByNameAndCategory($cleanTagName, (int)$categoryId);
+                        $repoTag->createTag($primaryCategoryId, $cleanTagName);
+                        $tagId = $repoTag->findTagIdByNameAndCategory($cleanTagName, $primaryCategoryId);
                     }
 
                     if ($tagId) {
@@ -129,12 +138,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             $repoNewsTag->createNewsTag($newNewsId, $tagId);
                             $processedTags[] = $cleanTagName;
                         } catch (Exception $e) {
+                            // Ignored
                         }
                     }
                 } catch (Exception $e) {
                     continue;
                 }
             }
+
             $fileAry = reArrayFiles($_FILES['images']);
             $uploadedPaths = [];
             $uploadErrors = [];
@@ -192,5 +203,4 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     http_response_code(405);
     echo json_encode(['status' => 'error', 'message' => 'Method Not Allowed']);
 }
-#endregion
 ?>

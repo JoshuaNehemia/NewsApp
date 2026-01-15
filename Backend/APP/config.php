@@ -1,6 +1,6 @@
 <?php
 #region ADDRESS
-define("API_ADDRESS","http://localhost/NewsApp/Backend/APP/");
+define("API_ADDRESS","http://localhost/NewsApp2/Backend/APP/");
 define("IMAGE_DATABASE_ADDRESS", API_ADDRESS . "DATABASE/IMAGE/"); // API Address
 #endregion
 

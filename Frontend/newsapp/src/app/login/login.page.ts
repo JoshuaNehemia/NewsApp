@@ -10,7 +10,7 @@ import { AlertController, ToastController } from '@ionic/angular';
   standalone: false,
 })
 export class LoginPage implements OnInit {
-  email = '';
+  username = '';
   password = '';
 
   constructor(
@@ -23,7 +23,7 @@ export class LoginPage implements OnInit {
   ngOnInit() {}
 
   onLogin() {
-    this.http.login_user(this.email, this.password).subscribe((res: any) => {
+    this.http.login_user(this.username, this.password).subscribe((res: any) => {
       if (res.status === 'success') {
         localStorage.setItem('user_data', JSON.stringify(res.data));
         this.http.emitUserLogin(res.data);

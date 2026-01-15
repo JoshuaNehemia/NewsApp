@@ -1,5 +1,5 @@
 import { Component, OnInit } from '@angular/core';
-import { ActivatedRoute } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { HttpService } from '../http-service';
 import { ToastController } from '@ionic/angular';
 
@@ -14,13 +14,16 @@ export class NewsDetailPage implements OnInit {
   selectedImage: string = '';
   userRating: number = 0;
   newComment: string = '';
+  replyingTo: number | null = null;
+  replyText: string = '';
   currentUser: any = {};
 
   constructor(
     private route: ActivatedRoute,
+    private router: Router,
     private http: HttpService,
     private toastCtrl: ToastController
-  ) {}
+  ) { }
 
   ngOnInit() {
     const userStr = localStorage.getItem('user_data');
@@ -52,8 +55,9 @@ export class NewsDetailPage implements OnInit {
                 ? data.images[0]
                 : 'assets/images/placeholder.jpg',
             images: data.images || [],
-            categories: [data.category],
+            categories: data.categories && data.categories.length > 0 ? data.categories : (data.category ? [data.category] : []),
             author: data.author.fullname,
+            author_username: data.author.username,
             date: data.created_at,
             content: data.content,
             user_status: Number(data.user_status || 0),
@@ -63,11 +67,20 @@ export class NewsDetailPage implements OnInit {
             comment_count: data.comment_count || 0,
             tags: data.tags || [],
             comments: data.comments || [],
-            rating: data.rating,
+            rating: data.avg_rating || 0,
+            rating_count: data.rating_count || 0,
             isFavorite: false,
           };
 
           this.selectedImage = this.article.mainImage;
+
+          // Set user's rating if available
+          if (data.user_rating !== null && data.user_rating !== undefined) {
+            this.userRating = Math.round(data.user_rating);
+          }
+
+          // Load comments
+          this.loadComments();
         } else {
           this.showToast('Gagal memuat berita', 'danger');
         }
@@ -86,22 +99,138 @@ export class NewsDetailPage implements OnInit {
   }
 
   rateNews(star: number) {
-    this.userRating = star;
-    this.showToast(`Anda memberi rating ${star} bintang`, 'primary');
+    if (!this.article || !this.currentUser.username) {
+      this.showToast('Silahkan login terlebih dahulu', 'warning');
+      return;
+    }
+
+    this.http.add_rating(this.article.id, this.currentUser.username, star).subscribe(
+      (res: any) => {
+        if (res.status === 'success') {
+          this.userRating = star;
+          this.article.rating = res.data.avg_rating;
+          this.showToast(`Anda memberi rating ${star} bintang`, 'success');
+        }
+      },
+      (err) => {
+        console.error('Gagal memberi rating', err);
+        this.showToast('Gagal memberi rating', 'danger');
+      }
+    );
   }
 
   addComment() {
     if (!this.newComment.trim()) return;
-    const mockComment = {
-      user: { name: 'Saya' },
-      text: this.newComment,
-    };
 
-    if (!this.article.comments) this.article.comments = [];
-    this.article.comments.push(mockComment);
+    if (!this.article || !this.currentUser.username) {
+      this.showToast('Silahkan login terlebih dahulu', 'warning');
+      return;
+    }
 
-    this.newComment = '';
-    this.showToast('Komentar terkirim', 'success');
+    this.http.add_comment(this.article.id, this.currentUser.username, this.newComment).subscribe(
+      (res: any) => {
+        if (res.status === 'success') {
+          this.newComment = '';
+          this.showToast('Komentar terkirim', 'success');
+          // Reload comments
+          this.loadComments();
+          this.article.comment_count++;
+        }
+      },
+      (err) => {
+        console.error('Gagal mengirim komentar', err);
+        this.showToast('Gagal mengirim komentar', 'danger');
+      }
+    );
+  }
+
+  loadComments() {
+    if (!this.article) return;
+
+    this.http.get_comments(this.article.id).subscribe(
+      (res: any) => {
+        if (res.status === 'success' && res.data) {
+          // Build hierarchical structure
+          const commentsMap = new Map();
+          const topLevelComments: any[] = [];
+
+          // First pass: create all comment objects
+          res.data.forEach((comment: any) => {
+            const commentObj = {
+              id: comment.id,
+              username: comment.username,
+              user: { name: comment.fullname || comment.username },
+              text: comment.content,
+              date: comment.created_at,
+              reply_to_id: comment.reply_to_id,
+              replies: []
+            };
+            commentsMap.set(comment.id, commentObj);
+          });
+
+          // Second pass: build hierarchy
+          commentsMap.forEach((comment) => {
+            if (comment.reply_to_id) {
+              // This is a reply, add to parent's replies array
+              const parent = commentsMap.get(comment.reply_to_id);
+              if (parent) {
+                parent.replies.push(comment);
+              }
+            } else {
+              // This is a top-level comment
+              topLevelComments.push(comment);
+            }
+          });
+
+          this.article.comments = topLevelComments;
+          this.article.comment_count = res.count || commentsMap.size;
+        } else {
+          this.article.comments = [];
+        }
+      },
+      (err) => {
+        console.error('Gagal memuat komentar', err);
+        // Don't fail page, just set empty
+        if (this.article) {
+          this.article.comments = [];
+        }
+      }
+    );
+  }
+
+  toggleReply(commentId: number) {
+    if (this.replyingTo === commentId) {
+      this.replyingTo = null;
+      this.replyText = '';
+    } else {
+      this.replyingTo = commentId;
+      this.replyText = '';
+    }
+  }
+
+  addReply(commentId: number) {
+    if (!this.replyText.trim()) return;
+
+    if (!this.article || !this.currentUser.username) {
+      this.showToast('Silahkan login terlebih dahulu', 'warning');
+      return;
+    }
+
+    this.http.add_comment(this.article.id, this.currentUser.username, this.replyText, commentId).subscribe(
+      (res: any) => {
+        if (res.status === 'success') {
+          this.replyText = '';
+          this.replyingTo = null;
+          this.showToast('Balasan terkirim', 'success');
+          // Reload comments
+          this.loadComments();
+        }
+      },
+      (err) => {
+        console.error('Gagal mengirim balasan', err);
+        this.showToast('Gagal mengirim balasan', 'danger');
+      }
+    );
   }
 
   async showToast(msg: string, color: string) {
@@ -136,6 +265,12 @@ export class NewsDetailPage implements OnInit {
               ? 'Berita disukai.'
               : 'Like dibatalkan.';
           this.showToast(msg, 'success');
+
+          // Emit event to refresh favorites list
+          this.http.emitFavoritesChanged({
+            newsId: this.article.id,
+            isLiked: this.article.user_status === 1
+          });
         }
       },
       (err) => {
@@ -175,5 +310,48 @@ export class NewsDetailPage implements OnInit {
           this.showToast('Writter tidak bisa melakukan aksi tersebut', 'danger');
         }
       );
+  }
+
+  deleteNews() {
+    console.log('Delete clicked. CurrentUser:', this.currentUser);
+    console.log('Article Author:', this.article?.author_username);
+    
+    if (!this.article || !this.currentUser.username) {
+      this.showToast('Silahkan login terlebih dahulu', 'warning');
+      return;
+    }
+
+    // Verify current user is the author
+    if (this.currentUser.username !== this.article.author_username) {
+      console.log('Not author. Current:', this.currentUser.username, 'Author:', this.article.author_username);
+      this.showToast('Anda tidak memiliki izin menghapus berita ini', 'danger');
+      return;
+    }
+
+    // Confirm deletion
+    const confirmed = window.confirm('Apakah Anda yakin ingin menghapus berita ini? Tindakan ini tidak dapat dibatalkan.');
+    if (!confirmed) return;
+
+    console.log('Deleting news ID:', this.article.id);
+    this.http.delete_news(this.article.id, this.currentUser.username).subscribe(
+      (res: any) => {
+        console.log('Delete response:', res);
+        if (res.status === 'success') {
+          this.showToast('Berita berhasil dihapus', 'success');
+          // Navigate back after deletion
+          setTimeout(() => {
+            this.router.navigate(['/home']);
+          }, 1000);
+        }
+      },
+      (err: any) => {
+        console.error('Gagal menghapus berita', err);
+        if (err.status === 403) {
+          this.showToast('Anda tidak memiliki izin menghapus berita ini', 'danger');
+        } else {
+          this.showToast('Gagal menghapus berita', 'danger');
+        }
+      }
+    );
   }
 }

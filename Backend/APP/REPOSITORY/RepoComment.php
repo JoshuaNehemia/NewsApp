@@ -19,14 +19,11 @@ use Exception;
 
 class RepoComment
 {
-    #region FIELDS
-    private DatabaseConnection $db;
-    #endregion
-
     #region CONSTRUCTOR
     public function __construct()
     {
-        $this->db = new DatabaseConnection();
+        // No longer storing DatabaseConnection as field
+        // Each method will create its own connection
     }
     #endregion
 
@@ -73,7 +70,8 @@ class RepoComment
         $comments = [];
 
         try {
-            $conn = $this->db->connect();
+            $db = new DatabaseConnection();
+            $conn = $db->connect();
             $stmt = $conn->prepare($sql);
 
             if (!$stmt) {
@@ -105,6 +103,67 @@ class RepoComment
             }
         }
     }
+
+    /**
+     * Get all comments (including replies) for a news article
+     * Used for building hierarchical structure on frontend
+     */
+    public function getAllComments(int $news_id, int $limit = 100, int $offset = 0): array
+    {
+        $sql = "SELECT
+                c.id,
+                c.news_id,
+                c.username,
+                a.fullname,
+                c.reply_to_id,
+                c.content,
+                c.created_at,
+                c.updated_at
+            FROM comments c
+            LEFT JOIN accounts a 
+                ON c.username = a.username
+            WHERE c.news_id = ?
+            ORDER BY c.created_at ASC
+            LIMIT ? OFFSET ?;
+        ";
+
+        $comments = [];
+
+        try {
+            $db = new DatabaseConnection();
+            $conn = $db->connect();
+            $stmt = $conn->prepare($sql);
+
+            if (!$stmt) {
+                throw new Exception("Failed to prepare getAllComments query.");
+            }
+
+            $stmt->bind_param("iii", $news_id, $limit, $offset);
+
+            if (!$stmt->execute()) {
+                throw new Exception("Failed to get all comments:" . $stmt->error);
+            }
+
+            $result = $stmt->get_result();
+
+            while ($row = $result->fetch_assoc()) {
+                $comments[] = $this->mapSQLResultToCommentObject($row);
+            }
+
+            return $comments;
+
+        } catch (Exception $e) {
+            throw $e;
+        } finally {
+            if ($stmt) {
+                $stmt->close();
+            }
+            if ($conn) {
+                $conn->close();
+            }
+        }
+    }
+
 
     public function findReplyCommentByReplyToId(int $replyToId, int $limit = 10, int $offset = 0): array
     {
@@ -148,7 +207,8 @@ class RepoComment
         $comments = [];
 
         try {
-            $conn = $this->db->connect();
+            $db = new DatabaseConnection();
+            $conn = $db->connect();
             $stmt = $conn->prepare($sql);
 
             if (!$stmt) {
@@ -192,7 +252,8 @@ class RepoComment
             ) VALUES (?, ?, ?, ?);";
 
         try {
-            $conn = $this->db->connect();
+            $db = new DatabaseConnection();
+            $conn = $db->connect();
             $stmt = $conn->prepare($sql);
 
             if (!$stmt) {
@@ -241,7 +302,8 @@ class RepoComment
             LIMIT 1;";
 
         try {
-            $conn = $this->db->connect();
+            $db = new DatabaseConnection();
+            $conn = $db->connect();
             $stmt = $conn->prepare($sql);
 
             if (!$stmt) {
@@ -282,7 +344,8 @@ class RepoComment
             LIMIT 1;";
 
         try {
-            $conn = $this->db->connect();
+            $db = new DatabaseConnection();
+            $conn = $db->connect();
             $stmt = $conn->prepare($sql);
 
             if (!$stmt) {
@@ -326,8 +389,9 @@ class RepoComment
         $comment = new Comment();
         $comment->setId($row["id"]);
         $comment->setCreatedAt($row["created_at"]);
-        $comment->setUpdatedAt($row["udpated_at"]);
+        $comment->setUpdatedAt($row["updated_at"]);
         $comment->setContent($row['content']);
+        $comment->setReplyToId($row['reply_to_id'] ?? null);
         $comment->setUser($user);
         $comment->setNews($news);
         return $comment;

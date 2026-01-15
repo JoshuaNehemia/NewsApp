@@ -80,7 +80,7 @@
 
   <ion-item>
     <ion-label>Negara:</ion-label>
-    <ion-select [(ngModel)]="regData.country_id" (ionChange)="onCountryChange($event)">
+    <ion-select [(ngModel)]="regData.country_id" (ionChange)="onCountryChange($event)" [compareWith]="compareCountries">
       <ion-select-option *ngFor="let c of countries" [value]="c.id">
         {{ c.name }}
       </ion-select-option>

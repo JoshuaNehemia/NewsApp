@@ -15,10 +15,10 @@ use Exception;
 class Account
 {
     #region FIELDS
-    protected string $username;
-    protected string $fullname;
-    protected string $email;
-    protected string $role;
+    protected string $username = '';
+    protected string $fullname = '';
+    protected string $email = '';
+    protected string $role = '';
     protected string $profile_picture_address = "";
     #endregion
 
